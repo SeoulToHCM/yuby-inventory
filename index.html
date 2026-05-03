@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23f4a7b9'/><rect x='7' y='7' width='86' height='86' rx='14' fill='%23f9c6d3'/><text x='50' y='38' font-family='Georgia,serif' font-size='13' font-weight='700' fill='%238b2252' text-anchor='middle'>Seoul To HCM</text><line x1='18' y1='44' x2='82' y2='44' stroke='%23c0607a' stroke-width='1'/><text x='50' y='62' font-family='Georgia,serif' font-size='22' font-weight='700' fill='%23c0392b' text-anchor='middle'>Yuby</text><text x='50' y='76' font-family='Arial,sans-serif' font-size='9' fill='%23a05070' text-anchor='middle' letter-spacing='3'>COSMETICS</text></svg>">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='36' fill='%23f4a7b9'/><rect x='12' y='12' width='156' height='156' rx='26' fill='%23f9c6d3'/><text x='90' y='68' font-family='Georgia,serif' font-size='22' font-weight='700' fill='%238b2252' text-anchor='middle'>Seoul To HCM</text><line x1='30' y1='80' x2='150' y2='80' stroke='%23c0607a' stroke-width='1.5'/><text x='90' y='112' font-family='Georgia,serif' font-size='40' font-weight='700' fill='%23c0392b' text-anchor='middle'>Yuby</text><text x='90' y='136' font-family='Arial,sans-serif' font-size='16' fill='%23a05070' text-anchor='middle' letter-spacing='4'>COSMETICS</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💄</text></svg>">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Seoul To HCM × Yuby Cosmetics</title>
@@ -165,22 +164,6 @@ tr:hover td{background:#faf8f5;}
 
 @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr);}.io-layout{grid-template-columns:1fr;}.step-g{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:600px){.wrap{padding:12px;}.tabs{padding:0 10px;}.tab{padding:11px 10px;font-size:12px;}header{padding:0 14px;}}
-@media(max-width:640px){
-  .inv-table-wrap table,.inv-table-wrap thead{display:none;}
-  .inv-card-list{display:flex;flex-direction:column;gap:10px;padding:12px;}
-  .inv-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--radius);padding:14px;}
-  .inv-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
-  .inv-card-name{font-weight:600;font-size:14px;flex:1;}
-  .inv-card-vi{font-size:11px;color:var(--grn);margin-top:2px;}
-  .inv-card-note{font-size:11px;color:var(--txt2);margin-top:2px;}
-  .inv-card-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
-  .inv-card-sku{font-family:'Space Mono',monospace;font-size:11px;color:var(--red);background:rgba(192,57,43,.08);padding:2px 7px;border-radius:4px;}
-  .inv-card-cat{font-size:11px;color:var(--txt2);background:var(--sur2);padding:2px 7px;border-radius:4px;}
-  .inv-card-price{font-family:'Space Mono',monospace;font-size:11px;background:var(--sur2);padding:2px 7px;border-radius:4px;}
-  .inv-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:10px;border-top:1px solid var(--bdr);}
-  .inv-card-act{display:flex;gap:6px;}
-}
-@media(min-width:641px){.inv-card-list{display:none;}}
 </style>
 </head>
 <body>
@@ -238,7 +221,7 @@ tr:hover td{background:#faf8f5;}
     </div>
     <button class="btn btn-o" id="admin-toggle-btn" onclick="adminToggle()">🔐 <span id="admin-toggle-lbl"></span></button>
   </div>
-  <div class="tbl-wrap inv-table-wrap">
+  <div class="tbl-wrap">
     <!-- 대량 수정 바 (관리자 전용) -->
     <div id="bulk-edit-bar" style="display:none;background:#fff3f3;border:1px solid rgba(192,57,43,.25);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:none;align-items:center;gap:10px;flex-wrap:wrap;">
       <span id="bulk-sel-count" style="font-size:13px;font-weight:600;color:var(--red);min-width:60px;"></span>
@@ -261,8 +244,6 @@ tr:hover td{background:#faf8f5;}
       <th data-i="c_qty"></th><th data-i="c_min"></th><th data-i="c_price"></th>
       <th data-i="c_st"></th><th data-i="c_act"></th>
     </tr></thead><tbody id="inv-body"></tbody></table>
-    <!-- 모바일 카드 리스트 -->
-    <div class="inv-card-list" id="inv-card-list"></div>
     <div class="empty" id="inv-empty"><div class="empty-ico">📦</div><div data-i="no_items"></div></div>
   </div>
 </div>
@@ -974,34 +955,8 @@ function renderInv(){
     return ms&&mc&&mf;
   });
   var tb=document.getElementById('inv-body'),em=document.getElementById('inv-empty');
-  var cl=document.getElementById('inv-card-list');
-  if(!f.length){tb.innerHTML='';if(cl)cl.innerHTML='';em.style.display='block';return;}
+  if(!f.length){tb.innerHTML='';em.style.display='block';return;}
   em.style.display='none';
-  // 모바일 카드 렌더링
-  if(cl){
-    cl.innerHTML=f.map(function(it){
-      var st=getSt(it);
-      var skuHtml=it.sku?(it.daiso?'<span class="inv-card-sku" onclick="openDaiso(\''+it.sku+'\')" style="cursor:pointer;">'+it.sku+' 🔍</span>':'<span class="inv-card-sku">'+it.sku+'</span>'):'';
-      var qtyHtml=isAdmin
-        ?'<div class="qc"><button class="qb" onclick="simpleQty('+it.id+',-1)">−</button><span class="qv">'+it.qty+'</span><button class="qb" onclick="simpleQty('+it.id+',1)">＋</button></div>'
-        :'<span style="font-family:\'Space Mono\',monospace;font-weight:700;font-size:16px;">'+it.qty+'</span>';
-      var actHtml=isAdmin
-        ?'<div class="inv-card-act"><button class="ib" onclick="openEdit('+it.id+')">✏️</button><button class="ib d" onclick="delItem('+it.id+')">🗑️</button></div>'
-        :'';
-      return '<div class="inv-card">'
-        +'<div class="inv-card-top">'
-        +'<div><div class="inv-card-name">'+(it.nameKo||it.name||'')+'</div>'+(it.nameVi?'<div class="inv-card-vi">'+it.nameVi+'</div>':'')+(it.note?'<div class="inv-card-note">'+it.note+'</div>':'')+'</div>'
-        +'<span class="badge '+st.c+'">'+tx(st.k)+'</span>'
-        +'</div>'
-        +'<div class="inv-card-meta">'
-        +skuHtml
-        +'<span class="inv-card-cat">'+it.cat+'</span>'
-        +(it.price?'<span class="inv-card-price">'+((it.price||0).toLocaleString())+'₫</span>':'')
-        +'</div>'
-        +'<div class="inv-card-bottom">'+qtyHtml+actHtml+'</div>'
-        +'</div>';
-    }).join('');
-  }
   var restoreIds = selectedIds.slice();
   tb.innerHTML=f.map(function(it){
     var st=getSt(it);

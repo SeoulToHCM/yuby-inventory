@@ -524,6 +524,7 @@ tr:hover td{background:#faf8f5;}
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ── i18n ─────────────────────────────────────────────────────────────────
@@ -1154,25 +1155,37 @@ function exportLog(){
 }
 
 // ── QR ─────────────────────────────────────────────────────────────────────
-var qrStream=null,qrInterval=null;
-async function openQR(){
+var qrReader=null;
+function openQR(){
   document.getElementById('qr-ov').classList.add('on');
   document.getElementById('qr-st').textContent=tx('qr_scan');
   try{
-    qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    var v=document.getElementById('qr-vid');v.srcObject=qrStream;await v.play();
-    if('BarcodeDetector' in window){
-      var det=new BarcodeDetector({formats:['qr_code','ean_13','ean_8','code_128','code_39','upc_a','upc_e']});
-      qrInterval=setInterval(async function(){
-        try{var b=await det.detect(v);if(b.length>0){clearInterval(qrInterval);closeQR();scannerInput(b[0].rawValue);}}catch(e){}
-      },300);
-    }else{document.getElementById('qr-st').textContent='Chrome에서만 지원됩니다.';}
-  }catch(e){document.getElementById('qr-st').textContent='카메라 권한이 필요합니다.';}
+    var hints=new Map();
+    var formats=[
+      ZXing.BarcodeFormat.QR_CODE,
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.DATA_MATRIX
+    ];
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+    qrReader=new ZXing.BrowserMultiFormatReader(hints);
+    qrReader.decodeFromVideoDevice(null,'qr-vid',function(result,err){
+      if(result){
+        closeQR();
+        scannerInput(result.getText());
+      }
+    });
+  }catch(e){
+    document.getElementById('qr-st').textContent='카메라 권한이 필요합니다.';
+  }
 }
 function closeQR(){
   document.getElementById('qr-ov').classList.remove('on');
-  if(qrStream){qrStream.getTracks().forEach(function(t){t.stop();});qrStream=null;}
-  clearInterval(qrInterval);
+  if(qrReader){qrReader.reset();qrReader=null;}
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────

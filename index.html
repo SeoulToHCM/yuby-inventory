@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💄</text></svg>">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Seoul To HCM × Yuby Cosmetics</title>
@@ -178,9 +179,13 @@ tr:hover td{background:#faf8f5;}
     Seoul To HCM × Yuby Cosmetics
     <small id="hdr-sub">재고관리 시스템</small>
   </div>
-  <div class="lang-sw">
-    <button id="btn-ko" class="on" onclick="setLang('ko')">한국어</button>
-    <button id="btn-vi" onclick="setLang('vi')">Tiếng Việt</button>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div id="user-chip" style="display:none;font-size:11px;color:var(--txt2);background:var(--sur2);border:1px solid var(--bdr);border-radius:20px;padding:5px 10px;"></div>
+    <button id="logout-btn" onclick="logoutApp()" style="display:none;border:1px solid var(--bdr);background:transparent;border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;color:var(--txt2);">Logout</button>
+    <div class="lang-sw">
+      <button id="btn-ko" class="on" onclick="setLang('ko')">한국어</button>
+      <button id="btn-vi" onclick="setLang('vi')">Tiếng Việt</button>
+    </div>
   </div>
 </header>
 
@@ -500,8 +505,26 @@ tr:hover td{background:#faf8f5;}
 </div>
 </div>
 
+<!-- LOGIN MODAL -->
+<div class="ov on" id="login-ov" style="z-index:500;">
+  <div class="modal" style="width:380px;text-align:center;">
+    <div style="font-size:42px;margin-bottom:10px;">🔐</div>
+    <h2 style="margin-bottom:6px;">직원 로그인</h2>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:16px;line-height:1.6;">Seoul To HCM 재고관리 시스템</p>
+    <input type="text" id="login-id" placeholder="ID" style="width:100%;background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;padding:11px 14px;font-size:14px;font-family:'Space Mono',monospace;outline:none;margin-bottom:8px;color:var(--txt);">
+    <input type="password" id="login-pw" placeholder="Password" style="width:100%;background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;padding:11px 14px;font-size:14px;font-family:'Space Mono',monospace;outline:none;color:var(--txt);">
+    <div id="login-err" style="color:var(--red);font-size:12px;margin-top:8px;min-height:16px;"></div>
+    <button class="btn btn-r" onclick="loginApp()" style="width:100%;justify-content:center;margin-top:10px;padding:11px;">로그인</button>
+    <div style="font-size:11px;color:var(--txt2);margin-top:12px;line-height:1.6;text-align:left;background:var(--sur2);padding:10px;border-radius:8px;">
+       ID: staff / 1111
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ── i18n ─────────────────────────────────────────────────────────────────
@@ -616,16 +639,72 @@ function applyLang(){
   document.querySelectorAll('[data-pi]').forEach(function(el){el.placeholder=tx(el.getAttribute('data-pi'));});
 }
 
-// ── DATA ─────────────────────────────────────────────────────────────────
+// ── DATA / SUPABASE ───────────────────────────────────────────────────────
 var SK = 'yuby_v1';
 var items=[], logs=[], nid=1, nlid=1, logPage=1;
 var PER = 25;
 
-function load(){
-  try{var d=JSON.parse(localStorage.getItem(SK)||'{}');items=d.items||[];logs=d.logs||[];nid=d.nid||1;nlid=d.nlid||1;}
-  catch(e){items=[];logs=[];nid=1;nlid=1;}
+// Supabase 연결 정보
+var SUPABASE_URL = 'https://jzdfejbhofezojfaiqsr.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_FCkcVAN1Lkr7pON_tzTx8Q_YLkhdvLF';
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 직원 로그인: 운영 전 ID/PW를 꼭 변경하세요.
+var USERS = [
+  {id:'yuby', pw:'243515', name:'관리자', role:'admin'},
+  {id:'staff', pw:'1111', name:'직원', role:'staff'}
+];
+var currentUser = null;
+var backupTimer = null;
+
+function fromProduct(r){return {id:r.id,nameKo:r.name_ko||'',nameVi:r.name_vi||'',name:r.name||joinName(r.name_ko||'',r.name_vi||''),sku:r.sku||'',cat:r.category||'',qty:r.qty||0,min:r.min_qty||5,price:r.price||0,note:r.note||'',daiso:!!r.daiso};}
+function toProduct(d){return {name_ko:d.nameKo||'',name_vi:d.nameVi||'',name:d.name||joinName(d.nameKo||'',d.nameVi||''),sku:d.sku||'',category:d.cat||'',qty:d.qty||0,min_qty:d.min||5,price:d.price||0,note:d.note||'',daiso:!!d.daiso};}
+function fromLog(r){return {id:r.id,type:r.type,iid:r.product_id,name:r.name||'',sku:r.sku||'',cat:r.category||'',qty:r.qty||0,bef:r.before_qty||0,aft:r.after_qty||0,partner:r.partner||'',note:r.note||'',date:r.log_date||String(r.created_at||'').slice(0,10)};}
+function toLog(l){return {product_id:l.iid||null,type:l.type,name:l.name||'',sku:l.sku||'',category:l.cat||'',qty:l.qty||0,before_qty:l.bef||0,after_qty:l.aft||0,partner:l.partner||'',note:(l.note||'') + (currentUser?(' / 입력자: '+currentUser.name):''),log_date:l.date||today()};}
+
+async function load(){
+  try{
+    var pr = await sb.from('products').select('*').order('id',{ascending:true});
+    if(pr.error) throw pr.error;
+    var lr = await sb.from('stock_logs').select('*').order('created_at',{ascending:false}).limit(1000);
+    if(lr.error) throw lr.error;
+    items=(pr.data||[]).map(fromProduct);
+    logs=(lr.data||[]).map(fromLog);
+    nid = items.reduce(function(m,i){return Math.max(m,i.id||0);},0)+1;
+    nlid = logs.reduce(function(m,i){return Math.max(m,i.id||0);},0)+1;
+    localStorage.setItem(SK,JSON.stringify({items:items,logs:logs,nid:nid,nlid:nlid}));
+  }catch(e){
+    console.error(e);
+    showToast('Supabase 연결 실패 — 로컬 캐시를 표시합니다','err');
+    try{var d=JSON.parse(localStorage.getItem(SK)||'{}');items=d.items||[];logs=d.logs||[];nid=d.nid||1;nlid=d.nlid||1;}catch(x){items=[];logs=[];nid=1;nlid=1;}
+  }
 }
-function save(){localStorage.setItem(SK,JSON.stringify({items:items,logs:logs,nid:nid,nlid:nlid}));}
+function save(){
+  localStorage.setItem(SK,JSON.stringify({items:items,logs:logs,nid:nid,nlid:nlid,lastBackupAt:new Date().toISOString()}));
+  scheduleAutoBackup();
+}
+async function refreshAll(){await load();rebuildCats();renderInv();updateStats();renderIORecent();renderLog();renderCart();}
+var realtimeStarted=false;
+function setupRealtime(){
+  if(realtimeStarted) return;
+  realtimeStarted=true;
+  try{
+    sb.channel('inventory-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'products'},function(){refreshAll();})
+      .on('postgres_changes',{event:'*',schema:'public',table:'stock_logs'},function(){refreshAll();})
+      .subscribe();
+  }catch(e){console.warn('Realtime unavailable',e);}
+}
+function scheduleAutoBackup(){
+  clearTimeout(backupTimer);
+  backupTimer=setTimeout(function(){createBackup('auto');},1500);
+}
+async function createBackup(kind){
+  var snapshot={products:items,logs:logs,created_by:currentUser?currentUser.name:'unknown',created_at:new Date().toISOString()};
+  localStorage.setItem(SK+'_backup_'+today(),JSON.stringify(snapshot));
+  // app_backups 테이블을 만들면 Supabase에도 자동 저장됩니다. 없으면 조용히 localStorage 백업만 유지합니다.
+  try{await sb.from('app_backups').insert([{kind:kind||'auto',snapshot:snapshot,created_by:currentUser?currentUser.name:'unknown'}]);}catch(e){}
+}
 
 // ── TABS ─────────────────────────────────────────────────────────────────
 function goTab(name){
@@ -696,7 +775,7 @@ async function doTranslate(){
 
 function joinName(ko,vi){if(ko&&vi)return ko+' / '+vi;return ko||vi||'';}
 
-function saveItem(){
+async function saveItem(){
   var ko=document.getElementById('f-ko').value.trim();
   var vi=document.getElementById('f-vi').value.trim();
   if(!ko&&!vi){document.getElementById('f-ko').focus();return;}
@@ -708,25 +787,41 @@ function saveItem(){
     price:parseInt(document.getElementById('f-price').value)||0,
     note:document.getElementById('f-note').value.trim(),
     daiso:document.getElementById('f-daiso').checked};
-  if(editId){
-    var idx=items.findIndex(function(i){return i.id==editId;});
-    items[idx]=Object.assign({},items[idx],d);
-  }else{
-    d.id=nid++;items.push(d);
-  }
-  save();closeItem();renderInv();updateStats();rebuildCats();showToast(tx('toast_saved'),'ok');
+  try{
+    if(editId){
+      var r=await sb.from('products').update(toProduct(d)).eq('id',editId).select().single();
+      if(r.error) throw r.error;
+      var idx=items.findIndex(function(i){return i.id==editId;});
+      items[idx]=fromProduct(r.data);
+    }else{
+      var r=await sb.from('products').insert([toProduct(d)]).select().single();
+      if(r.error) throw r.error;
+      items.push(fromProduct(r.data));
+    }
+    save();closeItem();renderInv();updateStats();rebuildCats();showToast(tx('toast_saved'),'ok');
+  }catch(e){console.error(e);showToast('저장 실패: '+(e.message||e),'err');}
 }
 
-function delItem(id){
+async function delItem(id){
+  if(!currentUser || currentUser.role!=='admin'){showToast('관리자만 삭제할 수 있습니다','err');return;}
   if(!confirm(tx('del_confirm')))return;
-  items=items.filter(function(i){return i.id!=id;});
-  save();renderInv();updateStats();rebuildCats();showToast(tx('toast_del'),'ok');
+  try{
+    var r=await sb.from('products').delete().eq('id',id);
+    if(r.error) throw r.error;
+    items=items.filter(function(i){return i.id!=id;});
+    save();renderInv();updateStats();rebuildCats();showToast(tx('toast_del'),'ok');
+  }catch(e){console.error(e);showToast('삭제 실패: '+(e.message||e),'err');}
 }
 
-function simpleQty(id,d){
+async function simpleQty(id,d){
   var it=items.find(function(i){return i.id==id;});if(!it)return;
-  it.qty=Math.max(0,it.qty+d);
-  save();renderInv();updateStats();
+  var newQty=Math.max(0,it.qty+d);
+  try{
+    var r=await sb.from('products').update({qty:newQty}).eq('id',id);
+    if(r.error) throw r.error;
+    it.qty=newQty;
+    save();renderInv();updateStats();
+  }catch(e){console.error(e);showToast('수량 수정 실패','err');}
 }
 
 // ── IO SCANNER ─────────────────────────────────────────────────────────────
@@ -811,25 +906,34 @@ function renderCart(){
   sum.style.display='flex';
 }
 
-function doIO(){
+async function doIO(){
   var valid=cart.filter(function(c){return !c.notFound;});
   if(!valid.length)return;
 
   var partner=document.getElementById('io-partner').value.trim();
   var note=document.getElementById('io-note').value.trim();
   var date=document.getElementById('io-date').value||today();
-  for(var i=0;i<valid.length;i++){
-    var c=valid[i];
-    var bef=c.it.qty;
-    c.it.qty=ioMode==='in'?bef+c.qty:bef-c.qty;
-    logs.unshift({id:nlid++,type:ioMode,iid:c.it.id,name:c.it.name,sku:c.it.sku,cat:c.it.cat,qty:c.qty,bef:bef,aft:c.it.qty,partner:partner,note:note,date:date});
-  }
-  save();cart=[];
-  document.getElementById('io-partner').value='';
-  document.getElementById('io-note').value='';
-  renderCart();renderInv();updateStats();renderIORecent();renderLog();
-  showToast(tx('toast_io'),'ok');
-  setTimeout(function(){document.getElementById('sc-inp').focus();},80);
+  try{
+    for(var i=0;i<valid.length;i++){
+      var c=valid[i];
+      var bef=c.it.qty;
+      var aft=ioMode==='in'?bef+c.qty:bef-c.qty;
+      if(ioMode==='out' && aft<0){showToast(tx('out_over'),'err');return;}
+      var ur=await sb.from('products').update({qty:aft}).eq('id',c.it.id);
+      if(ur.error) throw ur.error;
+      c.it.qty=aft;
+      var log={type:ioMode,iid:c.it.id,name:c.it.name,sku:c.it.sku,cat:c.it.cat,qty:c.qty,bef:bef,aft:aft,partner:partner,note:note,date:date};
+      var lr=await sb.from('stock_logs').insert([toLog(log)]).select().single();
+      if(lr.error) throw lr.error;
+      logs.unshift(fromLog(lr.data));
+    }
+    save();cart=[];
+    document.getElementById('io-partner').value='';
+    document.getElementById('io-note').value='';
+    renderCart();renderInv();updateStats();renderIORecent();renderLog();
+    showToast(tx('toast_io'),'ok');
+    setTimeout(function(){document.getElementById('sc-inp').focus();},80);
+  }catch(e){console.error(e);showToast('입출고 처리 실패: '+(e.message||e),'err');}
 }
 
 // ── RENDER ─────────────────────────────────────────────────────────────────
@@ -856,7 +960,7 @@ function renderInv(){
   var restoreIds = selectedIds.slice();
   tb.innerHTML=f.map(function(it){
     var st=getSt(it);
-    return '<tr id="row-'+it.id+'" onclick="onRowClick(event,'+it.id+')" style="cursor:'+(isAdmin?'pointer':'default')+'">'
+    return '<tr id="row-'+it.id+'" onclick="onRowClick(event,'+it.id+'")" style="cursor:'+(isAdmin?'pointer':'default')+'">'
       +(isAdmin?'<td style="width:36px;"><input type="checkbox" class="row-chk" data-id="'+it.id+'" style="cursor:pointer;accent-color:var(--red);" onclick="onChkClick(event,'+it.id+')"></td>':'')
       +'<td style="font-family:\'Space Mono\',monospace;font-size:11px;color:var(--txt2)">#'+it.id+'</td>'
       +'<td><div style="font-weight:600">'+(it.nameKo||it.name||'')+'</div>'+(it.nameVi?'<div style="font-size:11px;color:var(--grn);margin-top:1px">'+it.nameVi+'</div>':'')+(it.note?'<div style="font-size:11px;color:var(--txt2);margin-top:1px">'+it.note+'</div>':'')+'</td>'
@@ -1017,10 +1121,15 @@ function onBulkFile(inp){
   reader.readAsBinaryString(file);
 }
 
-document.getElementById('bulk-ok').onclick=function(){
-  bulkData.forEach(function(r){r.id=nid++;items.push(r);});
-  save();closeBulk();renderInv();updateStats();rebuildCats();
-  showToast(tx('bulk_done',{n:bulkData.length}),'ok');bulkData=[];
+document.getElementById('bulk-ok').onclick=async function(){
+  try{
+    var rows=bulkData.map(toProduct);
+    var r=await sb.from('products').insert(rows).select();
+    if(r.error) throw r.error;
+    items=items.concat((r.data||[]).map(fromProduct));
+    save();closeBulk();renderInv();updateStats();rebuildCats();
+    showToast(tx('bulk_done',{n:bulkData.length}),'ok');bulkData=[];
+  }catch(e){console.error(e);showToast('대량등록 실패: '+(e.message||e),'err');}
 };
 
 // ── EXCEL ─────────────────────────────────────────────────────────────────
@@ -1046,25 +1155,37 @@ function exportLog(){
 }
 
 // ── QR ─────────────────────────────────────────────────────────────────────
-var qrStream=null,qrInterval=null;
-async function openQR(){
+var qrReader=null;
+function openQR(){
   document.getElementById('qr-ov').classList.add('on');
   document.getElementById('qr-st').textContent=tx('qr_scan');
   try{
-    qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    var v=document.getElementById('qr-vid');v.srcObject=qrStream;await v.play();
-    if('BarcodeDetector' in window){
-      var det=new BarcodeDetector({formats:['qr_code','ean_13','ean_8','code_128','code_39','upc_a','upc_e']});
-      qrInterval=setInterval(async function(){
-        try{var b=await det.detect(v);if(b.length>0){clearInterval(qrInterval);closeQR();scannerInput(b[0].rawValue);}}catch(e){}
-      },300);
-    }else{document.getElementById('qr-st').textContent='Chrome에서만 지원됩니다.';}
-  }catch(e){document.getElementById('qr-st').textContent='카메라 권한이 필요합니다.';}
+    var hints=new Map();
+    var formats=[
+      ZXing.BarcodeFormat.QR_CODE,
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.DATA_MATRIX
+    ];
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+    qrReader=new ZXing.BrowserMultiFormatReader(hints);
+    qrReader.decodeFromVideoDevice(null,'qr-vid',function(result,err){
+      if(result){
+        closeQR();
+        scannerInput(result.getText());
+      }
+    });
+  }catch(e){
+    document.getElementById('qr-st').textContent='카메라 권한이 필요합니다.';
+  }
 }
 function closeQR(){
   document.getElementById('qr-ov').classList.remove('on');
-  if(qrStream){qrStream.getTracks().forEach(function(t){t.stop();});qrStream=null;}
-  clearInterval(qrInterval);
+  if(qrReader){qrReader.reset();qrReader=null;}
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────
@@ -1130,26 +1251,28 @@ function clearSelection(){
   updateBulkBar();
 }
 
-function bulkSetQty(){
+async function bulkSetQty(){
   var val = parseInt(document.getElementById('bulk-qty-val').value);
   if(isNaN(val)){showToast('수량을 입력하세요','err');return;}
-  selectedIds.forEach(function(id){
-    var it = items.find(function(i){return i.id==id;});
-    if(it) it.qty = val;
-  });
-  save(); renderInv(); updateStats();
-  showToast(selectedIds.length+(lang==='ko'?'개 수량 수정 완료':' đã cập nhật'),'ok');
-  clearSelection();
+  try{
+    var r=await sb.from('products').update({qty:val}).in('id',selectedIds);
+    if(r.error) throw r.error;
+    selectedIds.forEach(function(id){var it = items.find(function(i){return i.id==id;}); if(it) it.qty = val;});
+    save(); renderInv(); updateStats();
+    showToast(selectedIds.length+(lang==='ko'?'개 수량 수정 완료':' đã cập nhật'),'ok');
+    clearSelection();
+  }catch(e){console.error(e);showToast('수량 수정 실패','err');}
 }
 
-function bulkSetDaiso(val){
-  selectedIds.forEach(function(id){
-    var it = items.find(function(i){return i.id==id;});
-    if(it) it.daiso = val;
-  });
-  save(); renderInv();
-  showToast(selectedIds.length+(lang==='ko'?'개 다이소 설정 완료':' đã cập nhật'),'ok');
-  clearSelection();
+async function bulkSetDaiso(val){
+  try{
+    var r=await sb.from('products').update({daiso:val}).in('id',selectedIds);
+    if(r.error) throw r.error;
+    selectedIds.forEach(function(id){var it = items.find(function(i){return i.id==id;}); if(it) it.daiso = val;});
+    save(); renderInv();
+    showToast(selectedIds.length+(lang==='ko'?'개 다이소 설정 완료':' đã cập nhật'),'ok');
+    clearSelection();
+  }catch(e){console.error(e);showToast('다이소 설정 실패','err');}
 }
 
 // ── 다이소몰 검색 ──────────────────────────────────────────────────────────
@@ -1164,19 +1287,63 @@ function openDaiso(sku){
   window.open('https://www.daisomall.co.kr/ds/dst/SCR_DST_0015?searchTerm='+encodeURIComponent(sku),'_blank');
 }
 
+
+// ── 직원 로그인 ───────────────────────────────────────────────────────────
+function loginApp(){
+  var id=document.getElementById('login-id').value.trim();
+  var pw=document.getElementById('login-pw').value;
+  var u=USERS.find(function(x){return x.id===id && x.pw===pw;});
+  if(!u){document.getElementById('login-err').textContent='ID 또는 비밀번호가 틀렸습니다';return;}
+  currentUser={id:u.id,name:u.name,role:u.role};
+  sessionStorage.setItem('inventory_user',JSON.stringify(currentUser));
+  document.getElementById('login-ov').classList.remove('on');
+  isAdmin=currentUser.role==='admin';
+  updateUserUI();
+  updateAdminUI();
+  showToast(currentUser.name+' 로그인 완료','ok');
+}
+function logoutApp(){
+  sessionStorage.removeItem('inventory_user');
+  currentUser=null;isAdmin=false;
+  updateUserUI();updateAdminUI();
+  document.getElementById('login-id').value='';
+  document.getElementById('login-pw').value='';
+  document.getElementById('login-err').textContent='';
+  document.getElementById('login-ov').classList.add('on');
+}
+function updateUserUI(){
+  var chip=document.getElementById('user-chip'),btn=document.getElementById('logout-btn');
+  if(currentUser){
+    chip.style.display='block';btn.style.display='inline-block';
+    chip.textContent=currentUser.name+' · '+(currentUser.role==='admin'?'ADMIN':'STAFF');
+  }else{chip.style.display='none';btn.style.display='none';}
+}
+function restoreLogin(){
+  try{currentUser=JSON.parse(sessionStorage.getItem('inventory_user')||'null');}catch(e){currentUser=null;}
+  if(currentUser){document.getElementById('login-ov').classList.remove('on');isAdmin=currentUser.role==='admin';}
+  else{document.getElementById('login-ov').classList.add('on');}
+  updateUserUI();
+}
+
 // ── 관리자 모드 ───────────────────────────────────────────────────────────
 var ADMIN_PW = '243515';   // ← 여기서 비밀번호 변경
 var isAdmin = false;
 var adminPendingFn = null;
 
 function adminToggle(){
+  if(!currentUser){document.getElementById('login-ov').classList.add('on');return;}
+  if(currentUser.role!=='admin'){
+    showToast('관리자 계정만 관리자 모드를 사용할 수 있습니다','err');
+    return;
+  }
   if(isAdmin){
-    // 로그아웃
     isAdmin=false;
     updateAdminUI();
     showToast(tx('adm_logout'),'ok');
   } else {
-    openAdmin(null);
+    isAdmin=true;
+    updateAdminUI();
+    showToast(tx('adm_login')+' ✓','ok');
   }
 }
 
@@ -1195,7 +1362,7 @@ function closeAdmin(){
 
 function checkAdmin(){
   var pw=document.getElementById('adm-pw').value;
-  if(pw===ADMIN_PW){
+  if(currentUser && currentUser.role==='admin' && pw===ADMIN_PW){
     isAdmin=true;
     closeAdmin();
     updateAdminUI();
@@ -1228,6 +1395,19 @@ function updateAdminUI(){
   }
 }
 
+// 전체선택 체크박스
+document.getElementById('chk-all').addEventListener('change', function(){
+  var chks = document.querySelectorAll('.row-chk');
+  selectedIds = [];
+  chks.forEach(function(c){
+    c.checked = this.checked;
+    if(this.checked){
+      selectedIds.push(parseInt(c.getAttribute('data-id')));
+    }
+  }, this);
+  updateBulkBar();
+});
+
 // 관리자 전용 함수 래퍼
 function guardAdmin(fn){
   if(isAdmin){fn();}
@@ -1256,19 +1436,8 @@ var sc=document.getElementById('sc-inp');
 document.getElementById('adm-pw').addEventListener('keyup',function(e){
   if(e.keyCode===13) checkAdmin();
 });
-
-// 전체선택 체크박스
-document.getElementById('chk-all').addEventListener('change', function(){
-  var chks = document.querySelectorAll('.row-chk');
-  selectedIds = [];
-  chks.forEach(function(c){
-    c.checked = this.checked;
-    if(this.checked){
-      selectedIds.push(parseInt(c.getAttribute('data-id')));
-    }
-  }, this);
-  updateBulkBar();
-});
+document.getElementById('login-id').addEventListener('keyup',function(e){if(e.keyCode===13) document.getElementById('login-pw').focus();});
+document.getElementById('login-pw').addEventListener('keyup',function(e){if(e.keyCode===13) loginApp();});
 
 sc.addEventListener('focus',function(){
   document.getElementById('scan-zone').classList.add('focus');
@@ -1301,20 +1470,27 @@ sc.addEventListener('keyup',function(e){
 });
 
 // ── 데이터 로드 & 렌더 ──────────────────────────────────────────────────
-load();
-// 기존 상품 daiso 설정: SKU가 8로 시작하면 false, 나머지 true
-items.forEach(function(it){
-  if(it.daiso===undefined){
-    it.daiso = !(it.sku && it.sku.toString().charAt(0)==='8');
-  }
-});
-save();
-applyLang();
-rebuildCats();
-renderInv();
-updateStats();
-updateIOUI();
-updateAdminUI();
+async function initApp(){
+  restoreLogin();
+  await load();
+  // 기존 상품 daiso 설정: SKU가 8로 시작하면 false, 나머지 true
+  items.forEach(function(it){
+    if(it.daiso===undefined){
+      it.daiso = !(it.sku && it.sku.toString().charAt(0)==='8');
+    }
+  });
+  save();
+  applyLang();
+  rebuildCats();
+  renderInv();
+  updateStats();
+  updateIOUI();
+  updateAdminUI();
+  renderIORecent();
+  renderLog();
+  setupRealtime();
+}
+initApp();
 </script>
 </body>
 </html>

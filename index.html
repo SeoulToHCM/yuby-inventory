@@ -197,6 +197,7 @@ tr:hover td{background:#faf8f5;}
   <button class="tab" id="tab-io"  onclick="goTab('io')">🔄 <span data-i="t_io"></span></button>
   <button class="tab" id="tab-log" onclick="goTab('log')">📜 <span data-i="t_log"></span></button>
   <button class="tab" id="tab-hlp" onclick="goTab('hlp')">❓ <span data-i="t_hlp"></span></button>
+  <button class="tab" id="tab-calc" onclick="goTab('calc')" style="display:none">🧮 <span data-i="t_calc"></span></button>
 </div>
 
 <!-- ══ 재고 ══ -->
@@ -321,6 +322,11 @@ tr:hover td{background:#faf8f5;}
       <option value="out" data-i="l_out"></option>
     </select>
     <select id="lf-cat" onchange="renderLog()"><option value="" data-i="f_allcat"></option></select>
+    <div style="display:flex;align-items:center;gap:5px;">
+      <input type="date" id="lf-from" onchange="renderLog()" style="background:var(--sur);border:1px solid var(--bdr);border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;color:var(--txt);outline:none;">
+      <span style="font-size:12px;color:var(--txt2);">~</span>
+      <input type="date" id="lf-to" onchange="renderLog()" style="background:var(--sur);border:1px solid var(--bdr);border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;color:var(--txt);outline:none;">
+    </div>
     <button class="btn btn-g" onclick="exportLog()">📊 <span data-i="btn_explog"></span></button>
   </div>
   <div class="tbl-wrap">
@@ -397,6 +403,64 @@ tr:hover td{background:#faf8f5;}
       <div class="step-b"><div style="font-size:26px;margin-bottom:6px;">2️⃣</div><div style="font-size:11px;font-weight:600;margin-bottom:3px;" data-i="h_s2t"></div><div style="font-size:10px;color:var(--txt2);" data-i="h_s2d"></div></div>
       <div class="step-b"><div style="font-size:26px;margin-bottom:6px;">3️⃣</div><div style="font-size:11px;font-weight:600;margin-bottom:3px;" data-i="h_s3t"></div><div style="font-size:10px;color:var(--txt2);" data-i="h_s3d"></div></div>
       <div class="step-b"><div style="font-size:26px;margin-bottom:6px;">4️⃣</div><div style="font-size:11px;font-weight:600;margin-bottom:3px;" data-i="h_s4t"></div><div style="font-size:10px;color:var(--txt2);" data-i="h_s4d"></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ 단가 계산기 ══ -->
+<div class="page" id="page-calc">
+<div class="wrap" style="max-width:900px;">
+  <div class="io-layout">
+    <div class="io-card">
+      <div style="font-size:15px;font-weight:700;margin-bottom:18px;" data-i="calc_title"></div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="f"><label data-i="calc_buy"></label><input type="number" id="calc-buy" placeholder="0" min="0" oninput="calcUpdate()"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="f"><label data-i="calc_weight"></label><input type="number" id="calc-weight" placeholder="0" min="0" step="0.1" value="0" oninput="calcUpdate()"><div style="font-size:11px;color:var(--txt2);margin-top:3px;" data-i="calc_weight_hint"></div></div>
+          <div class="f"><label data-i="calc_qty_lbl"></label><input type="number" id="calc-qty" placeholder="1" min="1" value="1" oninput="calcUpdate()"></div>
+        </div>
+        <div class="f">
+          <label data-i="calc_rate_lbl"></label>
+          <input type="number" id="calc-rate" placeholder="18" value="18" min="0" step="0.01" oninput="saveCalcRate();calcUpdate()">
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px;" data-i="calc_rate_hint"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="f"><label data-i="calc_tax_lbl"></label><input type="number" id="calc-tax" placeholder="0" min="0" max="100" value="0" oninput="calcUpdate()"></div>
+          <div class="f"><label data-i="calc_extra_lbl"></label><input type="number" id="calc-extra" placeholder="0" min="0" value="0" oninput="calcUpdate()"></div>
+        </div>
+        <div class="f"><label data-i="calc_shopee_lbl"></label><input type="number" id="calc-shopee" placeholder="0" min="0" max="100" step="0.1" value="0" oninput="calcUpdate()"><div style="font-size:11px;color:var(--txt2);margin-top:3px;" data-i="calc_shopee_hint"></div></div>
+        <div class="f">
+          <label data-i="calc_margin_lbl"></label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="range" id="calc-margin-range" min="0" max="80" value="30" oninput="document.getElementById('calc-margin').value=this.value;calcUpdate();" style="flex:1;accent-color:var(--red);">
+            <input type="number" id="calc-margin" value="30" min="0" max="100" style="width:60px;background:var(--sur2);border:1px solid var(--bdr);border-radius:7px;padding:6px 8px;font-size:13px;font-family:inherit;color:var(--txt);outline:none;text-align:center;" oninput="document.getElementById('calc-margin-range').value=this.value;calcUpdate();">
+            <span style="font-size:13px;color:var(--txt2);">%</span>
+          </div>
+        </div>
+        <div class="f">
+          <label data-i="calc_round_lbl"></label>
+          <select id="calc-round" onchange="calcUpdate()">
+            <option value="1" data-i="calc_round_none"></option>
+            <option value="1000" selected>1,000đ</option>
+            <option value="5000">5,000đ</option>
+            <option value="10000">10,000đ</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="io-card" style="margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--txt2);" data-i="calc_result_hd"></div>
+        <div id="calc-results">
+          <div style="text-align:center;padding:20px;color:var(--txt2);font-size:12px;" id="calc-empty-msg"></div>
+        </div>
+      </div>
+      <div class="io-card" style="text-align:center;">
+        <div style="font-size:11px;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;" data-i="calc_sell_hd"></div>
+        <div style="font-size:34px;font-family:'Space Mono',monospace;font-weight:700;color:var(--red);line-height:1.2;" id="calc-final">-</div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:8px;line-height:1.6;" id="calc-final-sub"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -518,9 +582,6 @@ tr:hover td{background:#faf8f5;}
     <input type="password" id="login-pw" placeholder="Password" style="width:100%;background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;padding:11px 14px;font-size:14px;font-family:'Space Mono',monospace;outline:none;color:var(--txt);">
     <div id="login-err" style="color:var(--red);font-size:12px;margin-top:8px;min-height:16px;"></div>
     <button class="btn btn-r" onclick="loginApp()" style="width:100%;justify-content:center;margin-top:10px;padding:11px;">로그인</button>
-    <div style="font-size:11px;color:var(--txt2);margin-top:12px;line-height:1.6;text-align:left;background:var(--sur2);padding:10px;border-radius:8px;">
-       ID: staff / 1111
-    </div>
   </div>
 </div>
 
@@ -579,6 +640,35 @@ ko:{
   h_s2t:'스캔', h_s2d:'바코드 스캔 또는 SKU 입력',
   h_s3t:'수량 확인', h_s3d:'카트에서 수량 조절',
   h_s4t:'처리', h_s4d:'거래처·날짜 입력 후 처리 클릭',
+  l_subtotal:'소계', l_total:'합계', l_in_sum:'입고합계', l_out_sum:'출고합계', l_net:'순변동',
+  t_calc:'단가 계산기',
+  calc_title:'🧮 단가 계산기',
+  calc_buy:'🛒 한국 구매 단가 (₩)',
+  calc_weight:'⚖️ 총 무게 (kg)',
+  calc_weight_hint:'kg × ₩7,000 자동 계산',
+  calc_qty_lbl:'📦 묶음 수량 (개)',
+  calc_rate_lbl:'💱 환율 (₩1 = ?đ)',
+  calc_rate_hint:'직접 입력 · 변경 시 자동 저장',
+  calc_tax_lbl:'🏛 관부가세 (%)',
+  calc_extra_lbl:'➕ 기타 비용 (₩)',
+  calc_shopee_lbl:'🛍 쇼피 플랫폼 수수료 (%)',
+  calc_shopee_hint:'판매가에서 차감 후 실수령액 기준으로 마진 계산',
+  calc_margin_lbl:'📈 목표 마진 (%)',
+  calc_round_lbl:'🔢 판매가 반올림 단위',
+  calc_round_none:'반올림 안 함',
+  calc_result_hd:'📊 계산 결과',
+  calc_sell_hd:'권장 판매가',
+  calc_empty_msg:'구매 단가를 입력하면<br>결과가 표시됩니다',
+  calc_empty_sub:'구매 단가를 입력하세요',
+  calc_r_ship_total:'총 배송비',
+  calc_r_ship_per:'개당 배송비',
+  calc_r_cost_krw:'개당 원가 (KRW)',
+  calc_r_cost_vnd:'원가 (VND, 환율 적용)',
+  calc_r_cost_tax:'관부가세 포함 원가',
+  calc_r_shopee:'쇼피 수수료',
+  calc_r_net:'실수령액',
+  calc_r_profit:'마진액',
+  calc_final_sub:'실마진율 {r}% · 원가 대비 +{p}đ',
 },
 vi:{
   hdr_sub:'Hệ thống quản lý kho', t_inv:'Tồn kho', t_io:'Nhập/Xuất', t_log:'Lịch sử', t_hlp:'Hướng dẫn',
@@ -627,6 +717,35 @@ vi:{
   h_s2t:'Quét mã', h_s2d:'Quét hoặc nhập SKU',
   h_s3t:'Kiểm tra SL', h_s3d:'Điều chỉnh trong giỏ',
   h_s4t:'Xác nhận', h_s4d:'Nhập đối tác, ngày rồi xác nhận',
+  l_subtotal:'Tổng phụ', l_total:'Tổng cộng', l_in_sum:'Tổng nhập', l_out_sum:'Tổng xuất', l_net:'Biến động',
+  t_calc:'Tính giá',
+  calc_title:'🧮 Tính giá',
+  calc_buy:'🛒 Giá mua tại Hàn (₩)',
+  calc_weight:'⚖️ Tổng trọng lượng (kg)',
+  calc_weight_hint:'kg × ₩7,000 tự động tính',
+  calc_qty_lbl:'📦 Số lượng trong lô',
+  calc_rate_lbl:'💱 Tỷ giá (₩1 = ?đ)',
+  calc_rate_hint:'Nhập thủ công · Tự động lưu khi thay đổi',
+  calc_tax_lbl:'🏛 Thuế nhập khẩu (%)',
+  calc_extra_lbl:'➕ Chi phí khác (₩)',
+  calc_shopee_lbl:'🛍 Phí nền tảng Shopee (%)',
+  calc_shopee_hint:'Tính lợi nhuận dựa trên tiền thực nhận sau phí',
+  calc_margin_lbl:'📈 Biên lợi nhuận mục tiêu (%)',
+  calc_round_lbl:'🔢 Làm tròn giá bán',
+  calc_round_none:'Không làm tròn',
+  calc_result_hd:'📊 Kết quả tính toán',
+  calc_sell_hd:'Giá bán đề xuất',
+  calc_empty_msg:'Nhập giá mua để<br>hiển thị kết quả',
+  calc_empty_sub:'Vui lòng nhập giá mua',
+  calc_r_ship_total:'Tổng phí vận chuyển',
+  calc_r_ship_per:'Phí ship/sản phẩm',
+  calc_r_cost_krw:'Giá vốn/SP (KRW)',
+  calc_r_cost_vnd:'Giá vốn (VND, quy đổi)',
+  calc_r_cost_tax:'Giá vốn (gồm thuế)',
+  calc_r_shopee:'Phí Shopee',
+  calc_r_net:'Tiền thực nhận',
+  calc_r_profit:'Lợi nhuận',
+  calc_final_sub:'Biên LN thực {r}% · Hơn vốn +{p}đ',
 }};
 var lang = 'ko';
 function tx(k,p){var s=L[lang][k]||k;if(p)Object.keys(p).forEach(function(a){s=s.replace('{'+a+'}',p[a]);});return s;}
@@ -634,7 +753,7 @@ function setLang(l){
   lang=l;
   document.getElementById('btn-ko').classList.toggle('on',l==='ko');
   document.getElementById('btn-vi').classList.toggle('on',l==='vi');
-  applyLang(); renderInv(); renderIORecent(); renderLog(); rebuildCats(); updateIOUI(); renderCart();
+  applyLang(); renderInv(); renderIORecent(); renderLog(); rebuildCats(); updateIOUI(); renderCart(); calcUpdate();
 }
 function applyLang(){
   document.getElementById('hdr-sub').textContent=tx('hdr_sub');
@@ -652,11 +771,6 @@ var SUPABASE_URL = 'https://jzdfejbhofezojfaiqsr.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_FCkcVAN1Lkr7pON_tzTx8Q_YLkhdvLF';
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 직원 로그인: 운영 전 ID/PW를 꼭 변경하세요.
-var USERS = [
-  {id:'yuby', pw:'243515', name:'관리자', role:'admin'},
-  {id:'staff', pw:'1111', name:'직원', role:'staff'}
-];
 var currentUser = null;
 var backupTimer = null;
 
@@ -827,6 +941,25 @@ async function simpleQty(id,d){
   }catch(e){console.error(e);showToast('수량 수정 실패','err');}
 }
 
+async function setMinDirect(id,val){
+  var newMin=parseInt(val);
+  if(isNaN(newMin)||newMin<0)return;
+  var it=items.find(function(i){return i.id==id;});
+  if(!it||it.min===newMin)return;
+  try{
+    var r=await sb.from('products').update({min_qty:newMin}).eq('id',id);
+    if(r.error) throw r.error;
+    it.min=newMin;
+    save();updateStats();
+    var row=document.getElementById('row-'+id);
+    if(row){var st=getSt(it);var badge=row.querySelector('.badge');if(badge){badge.className='badge '+st.c;badge.textContent=tx(st.k);}}
+  }catch(e){
+    console.error(e);showToast('최소재고 수정 실패','err');
+    var row=document.getElementById('row-'+id);
+    if(row){var inps=row.querySelectorAll('.qty-inp');if(inps[1])inps[1].value=it.min;}
+  }
+}
+
 async function setQtyDirect(id,val){
   var newQty=parseInt(val);
   if(isNaN(newQty)||newQty<0)return;
@@ -930,17 +1063,23 @@ function renderCart(){
 
 async function doIO(){
   var valid=cart.filter(function(c){return !c.notFound;});
+  var notFoundCnt=cart.filter(function(c){return c.notFound;}).length;
   if(!valid.length)return;
 
   var partner=document.getElementById('io-partner').value.trim();
   var note=document.getElementById('io-note').value.trim();
   var date=document.getElementById('io-date').value||today();
   try{
+    var skipped=[];
+    var processed=0;
     for(var i=0;i<valid.length;i++){
       var c=valid[i];
       var bef=c.it.qty;
       var aft=ioMode==='in'?bef+c.qty:bef-c.qty;
-      if(ioMode==='out' && aft<0){showToast(tx('out_over'),'err');return;}
+      if(ioMode==='out' && aft<0){
+        skipped.push(c.it.nameKo||c.it.name||c.it.sku);
+        continue;
+      }
       var ur=await sb.from('products').update({qty:aft}).eq('id',c.it.id);
       if(ur.error) throw ur.error;
       c.it.qty=aft;
@@ -948,12 +1087,21 @@ async function doIO(){
       var lr=await sb.from('stock_logs').insert([toLog(log)]).select().single();
       if(lr.error) throw lr.error;
       logs.unshift(fromLog(lr.data));
+      processed++;
+    }
+    if(processed===0){
+      showToast(lang==='ko'?'재고 부족 — 처리된 항목 없음':'Thiếu hàng — không xử lý được','err');
+      return;
     }
     save();cart=[];
     document.getElementById('io-partner').value='';
     document.getElementById('io-note').value='';
     renderCart();renderInv();updateStats();renderIORecent();renderLog();
-    showToast(tx('toast_io'),'ok');
+    var parts=[];
+    parts.push(lang==='ko'?processed+'개 처리 완료':processed+' mục hoàn tất');
+    if(skipped.length) parts.push(lang==='ko'?'재고부족 '+skipped.length+'개 제외':'bỏ qua '+skipped.length+' thiếu hàng');
+    if(notFoundCnt) parts.push(lang==='ko'?'미등록 '+notFoundCnt+'개 제외':'bỏ qua '+notFoundCnt+' chưa đăng ký');
+    showToast(parts.join(' · '), skipped.length||notFoundCnt?'':'ok');
     setTimeout(function(){document.getElementById('sc-inp').focus();},80);
   }catch(e){console.error(e);showToast('입출고 처리 실패: '+(e.message||e),'err');}
 }
@@ -989,7 +1137,7 @@ function renderInv(){
       +'<td>'+(it.sku?(it.daiso?'<span onclick="openDaiso(\''+it.sku+'\')" title="다이소몰 검색" style="font-family:\'Space Mono\',monospace;font-size:12px;color:var(--red);cursor:pointer;display:flex;align-items:center;gap:4px;">'+it.sku+' <span style="font-size:9px;background:var(--red);color:#fff;padding:1px 4px;border-radius:3px;font-family:sans-serif;border-radius:3px">🔍</span></span>':'<span style="font-family:\'Space Mono\',monospace;font-size:12px;color:var(--red)">'+it.sku+'</span>'):'-')+'</td>'
       +'<td style="font-size:12px;color:var(--txt2)">'+it.cat+'</td>'
       +'<td><div class="qc">'+(isAdmin?'<button class="qb" onclick="simpleQty('+it.id+',-1)">−</button>':'')+(isAdmin?'<input type="number" class="qv qty-inp" min="0" value="'+it.qty+'" onblur="setQtyDirect('+it.id+',this.value)" onkeydown="if(event.keyCode===13)this.blur()" onclick="event.stopPropagation()">':'<span class="qv" style="min-width:40px;text-align:center;">'+it.qty+'</span>')+(isAdmin?'<button class="qb" onclick="simpleQty('+it.id+',1)">＋</button>':'')+'</div></td>'
-      +'<td style="color:var(--txt2)">'+it.min+'</td>'
+      +(isAdmin?'<td><input type="number" class="qty-inp" min="0" value="'+it.min+'" onblur="setMinDirect('+it.id+',this.value)" onkeydown="if(event.keyCode===13)this.blur()" onclick="event.stopPropagation()" style="width:54px;color:var(--ora);"></td>':'<td style="color:var(--txt2)">'+it.min+'</td>')
       +'<td style="font-family:\'Space Mono\',monospace;font-size:12px">'+((it.price||0).toLocaleString())+'</td>'
       +'<td><span class="badge '+st.c+'">'+tx(st.k)+'</span></td>'
       +'<td>'+(isAdmin?'<div class="act"><button class="ib" onclick="openEdit('+it.id+')">✏️</button><button class="ib d" onclick="delItem('+it.id+')">🗑️</button></div>':'-')+'</td>'
@@ -1004,14 +1152,21 @@ function renderIORecent(){
   tb.innerHTML=logs.slice(0,15).map(function(l){return '<tr>'+logRow(l)+'</tr>';}).join('');
 }
 
-function renderLog(){
+function getLogFiltered(){
   var q=document.getElementById('q-log').value.toLowerCase();
   var tf=document.getElementById('lf-type').value;
   var cf=document.getElementById('lf-cat').value;
-  var f=logs.filter(function(l){
+  var ff=document.getElementById('lf-from').value;
+  var ft=document.getElementById('lf-to').value;
+  return logs.filter(function(l){
     var ms=!q||(l.name||'').toLowerCase().indexOf(q)!==-1||(l.sku||'').toLowerCase().indexOf(q)!==-1||(l.partner||'').toLowerCase().indexOf(q)!==-1;
-    return ms&&(!tf||l.type===tf)&&(!cf||l.cat===cf);
+    var md=(!ff||l.date>=ff)&&(!ft||l.date<=ft);
+    return ms&&(!tf||l.type===tf)&&(!cf||l.cat===cf)&&md;
   });
+}
+
+function renderLog(){
+  var f=getLogFiltered();
   var tot=f.length,pages=Math.max(1,Math.ceil(tot/PER));
   if(logPage>pages)logPage=1;
   var fr=(logPage-1)*PER,to=Math.min(fr+PER,tot),pg=f.slice(fr,to);
@@ -1166,14 +1321,67 @@ function exportInv(){
   XLSX.writeFile(wb,'재고_'+today()+'.xlsx');
 }
 function exportLog(){
+  var filtered=getLogFiltered();
+  if(!filtered.length){showToast(lang==='ko'?'데이터 없음':'Không có dữ liệu','err');return;}
+
+  // 날짜 오름차순 정렬
+  filtered.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:(a.name||'').localeCompare(b.name||'');});
+
+  // 날짜별 → 상품+구분별 그룹핑
+  var dateMap={};
+  filtered.forEach(function(l){
+    if(!dateMap[l.date]) dateMap[l.date]={};
+    var key=(l.iid||l.sku||l.name)+'|'+l.type;
+    if(!dateMap[l.date][key]){
+      dateMap[l.date][key]={date:l.date,type:l.type,name:l.name,sku:l.sku||'',cat:l.cat||'',qty:0,partners:[]};
+    }
+    dateMap[l.date][key].qty+=l.qty;
+    if(l.partner&&dateMap[l.date][key].partners.indexOf(l.partner)===-1) dateMap[l.date][key].partners.push(l.partner);
+  });
+
+  var hdr=[tx('l_date'),tx('l_type'),tx('c_name'),'SKU',tx('c_cat'),tx('l_chg'),tx('l_partner')];
+  var rows=[hdr];
+  var grandIn=0,grandOut=0;
+
+  Object.keys(dateMap).sort().forEach(function(date){
+    var dayIn=0,dayOut=0;
+    Object.keys(dateMap[date]).forEach(function(key){
+      var g=dateMap[date][key];
+      var isIn=g.type==='in';
+      if(isIn) dayIn+=g.qty; else dayOut+=g.qty;
+      rows.push([date, tx(isIn?'l_in':'l_out'), g.name, g.sku, g.cat, (isIn?'+':'-')+g.qty, g.partners.join(', ')]);
+    });
+    grandIn+=dayIn; grandOut+=dayOut;
+    var net=dayIn-dayOut;
+    // 일별 소계 행
+    rows.push([
+      '▶ '+date+' '+tx('l_subtotal'),
+      '',
+      tx('l_in_sum')+' '+dayIn+' / '+tx('l_out_sum')+' '+dayOut,
+      '','',
+      (net>=0?'+':'')+net,
+      ''
+    ]);
+  });
+
+  // 전체 합계 행
+  var grandNet=grandIn-grandOut;
+  rows.push([
+    '★ '+tx('l_total'),
+    '',
+    tx('l_in_sum')+' '+grandIn+' / '+tx('l_out_sum')+' '+grandOut,
+    '','',
+    (grandNet>=0?'+':'')+grandNet,
+    ''
+  ]);
+
   var wb=XLSX.utils.book_new();
-  var ws=XLSX.utils.aoa_to_sheet(
-    [[tx('l_date'),tx('l_type'),tx('c_name'),'SKU',tx('c_cat'),tx('l_chg'),tx('l_bef'),tx('l_aft'),tx('l_partner'),tx('f_note')]]
-    .concat(logs.map(function(l){return[l.date,tx(l.type==='in'?'l_in':'l_out'),l.name,l.sku,l.cat,(l.type==='in'?'+':'-')+l.qty,l.bef,l.aft,l.partner||'',l.note||''];}))
-  );
-  ws['!cols']=[12,8,26,12,14,8,7,7,16,18].map(function(w){return{wch:w};});
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[14,8,28,12,14,10,18].map(function(w){return{wch:w};});
   XLSX.utils.book_append_sheet(wb,ws,lang==='ko'?'이력':'Lich su');
-  XLSX.writeFile(wb,'이력_'+today()+'.xlsx');
+  var ff=document.getElementById('lf-from').value;
+  var ft=document.getElementById('lf-to').value;
+  XLSX.writeFile(wb,'이력'+(ff?'_'+ff:'')+(ft&&ft!==ff?'~'+ft:'')+'.xlsx');
 }
 
 // ── QR ─────────────────────────────────────────────────────────────────────
@@ -1311,22 +1519,32 @@ function openDaiso(sku){
 
 
 // ── 직원 로그인 ───────────────────────────────────────────────────────────
-function loginApp(){
+var AUTH_DOMAIN = '@yuby.internal';
+
+async function loginApp(){
   var id=document.getElementById('login-id').value.trim();
   var pw=document.getElementById('login-pw').value;
-  var u=USERS.find(function(x){return x.id===id && x.pw===pw;});
-  if(!u){document.getElementById('login-err').textContent='ID 또는 비밀번호가 틀렸습니다';return;}
-  currentUser={id:u.id,name:u.name,role:u.role};
-  sessionStorage.setItem('inventory_user',JSON.stringify(currentUser));
-  document.getElementById('login-ov').classList.remove('on');
-  isAdmin=currentUser.role==='admin';
-  updateUserUI();
-  updateAdminUI();
-  renderInv();
-  showToast(currentUser.name+' 로그인 완료','ok');
+  if(!id||!pw)return;
+  var errEl=document.getElementById('login-err');
+  var btn=document.querySelector('#login-ov .btn-r');
+  errEl.textContent='';
+  if(btn)btn.disabled=true;
+  try{
+    var res=await sb.auth.signInWithPassword({email:id+AUTH_DOMAIN,password:pw});
+    if(res.error)throw res.error;
+    var meta=res.data.user.user_metadata||{};
+    currentUser={id:id,name:meta.name||id,role:meta.role||'staff'};
+    document.getElementById('login-ov').classList.remove('on');
+    isAdmin=currentUser.role==='admin';
+    updateUserUI();updateAdminUI();renderInv();
+    showToast(currentUser.name+' 로그인 완료','ok');
+  }catch(e){
+    errEl.textContent='ID 또는 비밀번호가 틀렸습니다';
+  }
+  if(btn)btn.disabled=false;
 }
-function logoutApp(){
-  sessionStorage.removeItem('inventory_user');
+async function logoutApp(){
+  await sb.auth.signOut();
   currentUser=null;isAdmin=false;
   updateUserUI();updateAdminUI();
   document.getElementById('login-id').value='';
@@ -1341,15 +1559,25 @@ function updateUserUI(){
     chip.textContent=currentUser.name+' · '+(currentUser.role==='admin'?'ADMIN':'STAFF');
   }else{chip.style.display='none';btn.style.display='none';}
 }
-function restoreLogin(){
-  try{currentUser=JSON.parse(sessionStorage.getItem('inventory_user')||'null');}catch(e){currentUser=null;}
-  if(currentUser){document.getElementById('login-ov').classList.remove('on');isAdmin=currentUser.role==='admin';}
-  else{document.getElementById('login-ov').classList.add('on');}
+async function restoreLogin(){
+  try{
+    var res=await sb.auth.getSession();
+    if(res.data.session){
+      var meta=res.data.session.user.user_metadata||{};
+      var email=res.data.session.user.email||'';
+      currentUser={id:email.replace(AUTH_DOMAIN,''),name:meta.name||email,role:meta.role||'staff'};
+      document.getElementById('login-ov').classList.remove('on');
+      isAdmin=currentUser.role==='admin';
+    }else{
+      document.getElementById('login-ov').classList.add('on');
+    }
+  }catch(e){
+    document.getElementById('login-ov').classList.add('on');
+  }
   updateUserUI();
 }
 
 // ── 관리자 모드 ───────────────────────────────────────────────────────────
-var ADMIN_PW = '243515';   // ← 여기서 비밀번호 변경
 var isAdmin = false;
 var adminPendingFn = null;
 
@@ -1386,8 +1614,7 @@ function closeAdmin(){
 }
 
 function checkAdmin(){
-  var pw=document.getElementById('adm-pw').value;
-  if(currentUser && currentUser.role==='admin' && pw===ADMIN_PW){
+  if(currentUser && currentUser.role==='admin'){
     isAdmin=true;
     closeAdmin();
     updateAdminUI();
@@ -1406,17 +1633,21 @@ function updateAdminUI(){
   var tb=document.getElementById('admin-toolbar');
   var btn=document.getElementById('admin-toggle-btn');
   var thChk=document.getElementById('th-chk');
+  var calcTab=document.getElementById('tab-calc');
   if(isAdmin){
     lbl.textContent=tx('adm_logout');
     btn.style.background='var(--red)';btn.style.color='#fff';btn.style.border='none';
     tb.style.display='flex';
     thChk.style.display='table-cell';
+    calcTab.style.display='';
   } else {
     lbl.textContent=tx('adm_login');
     btn.style.background='';btn.style.color='';btn.style.border='';
     tb.style.display='none';
     thChk.style.display='none';
+    calcTab.style.display='none';
     clearSelection();
+    if(document.getElementById('page-calc').classList.contains('on')) goTab('inv');
   }
 }
 
@@ -1453,6 +1684,13 @@ document.getElementById('item-save').onclick=saveItem;
 
 // 입출고 날짜 기본값
 document.getElementById('io-date').value=today();
+// 이력 날짜 필터 기본값: 이번 달 1일 ~ 오늘
+(function(){
+  var t=new Date();
+  var firstDay=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-01';
+  document.getElementById('lf-from').value=firstDay;
+  document.getElementById('lf-to').value=today();
+})();
 
 // ── 스캐너 이벤트 (핵심) ─────────────────────────────────────────────────
 var sc=document.getElementById('sc-inp');
@@ -1496,7 +1734,7 @@ sc.addEventListener('keyup',function(e){
 
 // ── 데이터 로드 & 렌더 ──────────────────────────────────────────────────
 async function initApp(){
-  restoreLogin();
+  await restoreLogin();
   await load();
   // 기존 상품 daiso 설정: SKU가 8로 시작하면 false, 나머지 true
   items.forEach(function(it){
@@ -1516,6 +1754,71 @@ async function initApp(){
   setupRealtime();
 }
 initApp();
+
+// ── 단가 계산기 ─────────────────────────────────────────────────────────────
+function calcUpdate(){
+  var buy = parseFloat(document.getElementById('calc-buy').value) || 0;
+  var weight = parseFloat(document.getElementById('calc-weight').value) || 0;
+  var qty = Math.max(1, parseFloat(document.getElementById('calc-qty').value) || 1);
+  var rate = parseFloat(document.getElementById('calc-rate').value) || 18;
+  var tax = parseFloat(document.getElementById('calc-tax').value) || 0;
+  var extra = parseFloat(document.getElementById('calc-extra').value) || 0;
+  var shopee = parseFloat(document.getElementById('calc-shopee').value) || 0;
+  var margin = parseFloat(document.getElementById('calc-margin').value) || 0;
+  var roundUnit = parseInt(document.getElementById('calc-round').value) || 1;
+
+  if(buy <= 0){
+    document.getElementById('calc-results').innerHTML='<div style="text-align:center;padding:20px;color:var(--txt2);font-size:12px;">'+tx('calc_empty_msg')+'</div>';
+    document.getElementById('calc-final').textContent='-';
+    document.getElementById('calc-final-sub').textContent=tx('calc_empty_sub');
+    return;
+  }
+
+  var totalShip = weight * 7000;
+  var shipPer = totalShip / qty;
+  var extraPer = extra / qty;
+  var costKrw = buy + shipPer + extraPer;
+  var costVnd = costKrw * rate;
+  var costWithTax = costVnd * (1 + tax / 100);
+  var shopeeRate = shopee / 100;
+  var denom = (1 - margin / 100) * (1 - shopeeRate);
+  var sellRaw = denom > 0 ? costWithTax / denom : costWithTax * 2;
+  var sellPrice = roundUnit > 1 ? Math.ceil(sellRaw / roundUnit) * roundUnit : Math.round(sellRaw);
+  var shopeeFee = Math.round(sellPrice * shopeeRate);
+  var netRevenue = sellPrice - shopeeFee;
+  var profit = netRevenue - costWithTax;
+  var realMargin = netRevenue > 0 ? (profit / netRevenue * 100) : 0;
+
+  var rows = [
+    {label:tx('calc_r_ship_total')+' ('+weight+'kg × ₩7,000)', val:'₩'+Math.round(totalShip).toLocaleString()},
+    {label:tx('calc_r_ship_per'), val:'₩'+Math.round(shipPer).toLocaleString()},
+    {label:tx('calc_r_cost_krw'), val:'₩'+Math.round(costKrw).toLocaleString()},
+    {label:tx('calc_r_cost_vnd'), val:Math.round(costVnd).toLocaleString()+'đ'},
+    {label:tx('calc_r_cost_tax'), val:Math.round(costWithTax).toLocaleString()+'đ', bold:true},
+    {label:tx('calc_r_shopee')+' ('+shopee+'%)', val:'−'+shopeeFee.toLocaleString()+'đ', color:'var(--ora)'},
+    {label:tx('calc_r_net'), val:netRevenue.toLocaleString()+'đ'},
+    {label:tx('calc_r_profit'), val:Math.round(profit).toLocaleString()+'đ', color:'var(--grn)'},
+  ];
+
+  document.getElementById('calc-results').innerHTML = rows.map(function(r){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bdr);">'
+      +'<span style="font-size:12px;color:var(--txt2);">'+r.label+'</span>'
+      +'<span style="font-family:\'Space Mono\',monospace;font-size:13px;font-weight:'+(r.bold?'700':'600')+';color:'+(r.color||'var(--txt)')+';">'+r.val+'</span>'
+      +'</div>';
+  }).join('');
+
+  document.getElementById('calc-final').textContent = sellPrice.toLocaleString()+'đ';
+  document.getElementById('calc-final-sub').textContent = tx('calc_final_sub',{r:realMargin.toFixed(1),p:Math.round(profit).toLocaleString()});
+}
+
+function saveCalcRate(){
+  var v=document.getElementById('calc-rate').value;
+  if(v) localStorage.setItem('calc_rate',v);
+}
+(function(){
+  var saved=localStorage.getItem('calc_rate');
+  if(saved) document.getElementById('calc-rate').value=saved;
+})();
 </script>
 </body>
 </html>

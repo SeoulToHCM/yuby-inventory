@@ -29,7 +29,7 @@ header{position:sticky;top:0;z-index:100;background:var(--sur);border-bottom:2px
 .lang-sw button.on{background:var(--red);color:#fff;}
 
 .tabs{position:sticky;top:60px;z-index:99;background:var(--sur);border-bottom:2px solid var(--bdr);display:flex;padding:0 24px;}
-.tab{padding:13px 18px;border:none;background:transparent;color:var(--txt2);font-size:13px;font-family:inherit;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .18s;}
+.tab{padding:13px 18px;border:none;background:transparent;color:var(--txt2);font-size:13px;font-family:inherit;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .18s;white-space:nowrap;}
 .tab.on{color:var(--red);border-bottom-color:var(--red);font-weight:700;}
 .page{display:none;position:relative;z-index:1;}.page.on{display:block;}
 .wrap{max-width:1320px;margin:0 auto;padding:22px;}
@@ -166,7 +166,7 @@ tr:hover td{background:#faf8f5;}
 
 @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr);}.io-layout{grid-template-columns:1fr;}.step-g{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:768px){.tbl-wrap{overflow-x:auto;}table{min-width:640px;}}
-@media(max-width:600px){.wrap{padding:12px;}.tabs{padding:0 10px;}.tab{padding:11px 10px;font-size:12px;}header{padding:0 14px;}}
+@media(max-width:600px){.wrap{padding:12px;}.tabs{padding:0 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}.tabs::-webkit-scrollbar{display:none;}.tab{padding:10px 8px;font-size:11px;}header{padding:0 14px;}}
 </style>
 </head>
 <body>
@@ -211,6 +211,7 @@ tr:hover td{background:#faf8f5;}
   </div>
   <div class="bar">
     <div class="sw"><span class="sw-ico">🔍</span><input type="text" id="q-inv" data-pi="ph_search" oninput="renderInv()"></div>
+    <button class="btn btn-o" onclick="openQRInv()" title="바코드 스캔으로 검색">📷</button>
     <select id="f-cat" onchange="renderInv()"><option value="" data-i="f_allcat"></option></select>
     <select id="f-st"  onchange="renderInv()">
       <option value="" data-i="f_allst"></option>
@@ -233,6 +234,12 @@ tr:hover td{background:#faf8f5;}
         <span style="font-size:12px;color:var(--txt2);">수량 설정:</span>
         <input type="number" id="bulk-qty-val" style="width:70px;padding:5px 8px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:'Space Mono',monospace;background:var(--sur);color:var(--txt);" placeholder="0">
         <button class="btn btn-r btn-sm" onclick="bulkSetQty()">적용</button>
+      </div>
+      <div style="width:1px;height:28px;background:var(--bdr);"></div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:12px;color:var(--txt2);">최소재고 설정:</span>
+        <input type="number" id="bulk-min-val" style="width:70px;padding:5px 8px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:'Space Mono',monospace;background:var(--sur);color:var(--txt);" placeholder="0" min="0">
+        <button class="btn btn-sm" style="background:var(--ora);color:#fff;" onclick="bulkSetMin()">적용</button>
       </div>
       <div style="width:1px;height:28px;background:var(--bdr);"></div>
       <div style="display:flex;align-items:center;gap:8px;">
@@ -1109,7 +1116,7 @@ async function doIO(){
 // ── RENDER ─────────────────────────────────────────────────────────────────
 function getSt(it){
   if(it.qty==0)return{k:'st_out',c:'br'};
-  if(it.qty<=it.min)return{k:'st_low',c:'by'};
+  if(it.qty<it.min)return{k:'st_low',c:'by'};
   return{k:'st_ok',c:'bg'};
 }
 
@@ -1385,7 +1392,7 @@ function exportLog(){
 }
 
 // ── QR ─────────────────────────────────────────────────────────────────────
-var qrReader=null;
+var qrReader=null,qrCallback=null;
 function openQR(){
   document.getElementById('qr-ov').classList.add('on');
   document.getElementById('qr-st').textContent=tx('qr_scan');
@@ -1405,8 +1412,10 @@ function openQR(){
     qrReader=new ZXing.BrowserMultiFormatReader(hints);
     qrReader.decodeFromVideoDevice(null,'qr-vid',function(result,err){
       if(result){
+        var text=result.getText();
         closeQR();
-        scannerInput(result.getText());
+        if(qrCallback){var cb=qrCallback;qrCallback=null;cb(text);}
+        else{scannerInput(text);}
       }
     });
   }catch(e){
@@ -1416,6 +1425,18 @@ function openQR(){
 function closeQR(){
   document.getElementById('qr-ov').classList.remove('on');
   if(qrReader){qrReader.reset();qrReader=null;}
+  qrCallback=null;
+}
+function openQRInv(){
+  qrCallback=function(text){
+    var sku=text.trim();
+    document.getElementById('q-inv').value=sku;
+    renderInv();
+    var found=items.find(function(it){return (it.sku||'').toLowerCase()===sku.toLowerCase();});
+    if(found) showToast((found.nameKo||found.name||found.nameVi||'')+(lang==='ko'?' — 검색됨':' — tìm thấy'),'ok');
+    else showToast((lang==='ko'?'등록되지 않은 SKU: ':'SKU chưa đăng ký: ')+sku,'err');
+  };
+  openQR();
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────
@@ -1492,6 +1513,19 @@ async function bulkSetQty(){
     showToast(selectedIds.length+(lang==='ko'?'개 수량 수정 완료':' đã cập nhật'),'ok');
     clearSelection();
   }catch(e){console.error(e);showToast('수량 수정 실패','err');}
+}
+
+async function bulkSetMin(){
+  var val = parseInt(document.getElementById('bulk-min-val').value);
+  if(isNaN(val)||val<0){showToast('최소재고를 입력하세요','err');return;}
+  try{
+    var r=await sb.from('products').update({min_qty:val}).in('id',selectedIds);
+    if(r.error) throw r.error;
+    selectedIds.forEach(function(id){var it=items.find(function(i){return i.id==id;});if(it)it.min=val;});
+    save();renderInv();updateStats();
+    showToast(selectedIds.length+(lang==='ko'?'개 최소재고 수정 완료':' đã cập nhật tồn tối thiểu'),'ok');
+    clearSelection();
+  }catch(e){console.error(e);showToast('최소재고 수정 실패','err');}
 }
 
 async function bulkSetDaiso(val){

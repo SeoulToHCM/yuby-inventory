@@ -959,7 +959,12 @@ var backupTimer = null;
 
 function fromProduct(r){return {id:r.id,nameKo:r.name_ko||'',nameVi:r.name_vi||'',name:r.name||joinName(r.name_ko||'',r.name_vi||''),sku:r.sku||'',cat:r.category||'',qty:r.qty||0,min:r.min_qty||5,price:r.price||0,note:r.note||'',daiso:!!r.daiso};}
 function toProduct(d){return {name_ko:d.nameKo||'',name_vi:d.nameVi||'',name:d.name||joinName(d.nameKo||'',d.nameVi||''),sku:d.sku||'',category:d.cat||'',qty:d.qty||0,min_qty:d.min||5,price:d.price||0,note:d.note||'',daiso:!!d.daiso};}
-function fromLog(r){return {id:r.id,type:r.type,iid:r.product_id,name:r.name||'',sku:r.sku||'',cat:r.category||'',qty:r.qty||0,bef:r.before_qty||0,aft:r.after_qty||0,partner:r.partner||'',note:r.note||'',date:String(r.created_at||r.log_date||'').slice(0,16).replace('T',' ')};}
+function fromLog(r){
+  var dateStr='';
+  if(r.log_date){dateStr=String(r.log_date).slice(0,16).replace('T',' ');}
+  else if(r.created_at){var d=new Date(r.created_at);d=new Date(d.getTime()+7*60*60*1000);dateStr=d.toISOString().slice(0,16).replace('T',' ');}
+  return {id:r.id,type:r.type,iid:r.product_id,name:r.name||'',sku:r.sku||'',cat:r.category||'',qty:r.qty||0,bef:r.before_qty||0,aft:r.after_qty||0,partner:r.partner||'',note:r.note||'',date:dateStr};
+}
 function toLog(l){return {product_id:l.iid||null,type:l.type,name:l.name||'',sku:l.sku||'',category:l.cat||'',qty:l.qty||0,before_qty:l.bef||0,after_qty:l.aft||0,partner:l.partner||'',note:(l.note||'') + (currentUser?(' / 입력자: '+currentUser.name):''),log_date:l.date||today()};}
 
 async function load(){
@@ -1872,7 +1877,7 @@ function showToast(msg,type){
   el.textContent=msg;el.className='toast on '+(type||'ok');
   clearTimeout(toastT);toastT=setTimeout(function(){el.classList.remove('on');},2800);
 }
-function today(){return new Date().toISOString().slice(0,10);}
+function today(){var d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10);}
 function nowLocal(){var d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16);}
 
 // ── INIT ─────────────────────────────────────────────────────────────────

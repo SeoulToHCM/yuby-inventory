@@ -164,9 +164,29 @@ tr:hover td{background:#faf8f5;}
 .step-g{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .step-b{text-align:center;padding:14px;background:var(--sur2);border-radius:8px;}
 
-@media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr);}.io-layout{grid-template-columns:1fr;}.step-g{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr);}.io-layout{grid-template-columns:1fr;}.step-g{grid-template-columns:repeat(2,1fr);}.stat-grid{grid-template-columns:1fr;}}
 @media(max-width:768px){.tbl-wrap{overflow-x:auto;}table{min-width:640px;}}
 @media(max-width:600px){.wrap{padding:12px;}.tabs{padding:0 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}.tabs::-webkit-scrollbar{display:none;}.tab{padding:10px 8px;font-size:11px;}header{padding:0 14px;}}
+
+/* ── Dashboard ── */
+.dash-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.dash-kpi-card{background:#fff;border:1px solid #f0d0d6;border-radius:12px;padding:16px 20px;position:relative;overflow:hidden;}
+.dash-kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#c97080,#e0a8b2);}
+.dash-kpi-lbl{font-size:10px;color:#9e4055;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600;}
+.dash-kpi-val{font-size:28px;font-family:'Space Mono',monospace;font-weight:700;color:#c97080;line-height:1.1;}
+.dash-kpi-val.warn{color:#e67e22;} .dash-kpi-val.ok{color:#27ae60;}
+.dash-kpi-sub{font-size:11px;color:#9e4055;margin-top:5px;opacity:.7;}
+.dash-row{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;margin-bottom:18px;}
+.dash-row2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+.dash-card{background:#fff;border:1px solid #f0d0d6;border-radius:12px;padding:20px;}
+.dash-card-title{font-size:13px;font-weight:700;color:#7a3040;margin-bottom:16px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #f0d0d6;padding-bottom:12px;}
+.risk-badge{display:inline-block;padding:10px 32px;border-radius:30px;font-size:22px;font-weight:700;color:#fff;letter-spacing:2px;margin:10px 0;}
+.slow-bar-wrap{background:#f5dde0;border-radius:20px;height:10px;overflow:hidden;margin-top:6px;}
+.slow-bar{height:100%;background:linear-gradient(90deg,#c97080,#e0a8b2);border-radius:20px;transition:width .6s ease;}
+.dash-stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0d0d6;}
+.dash-stat-row:last-child{border-bottom:none;}
+#tab-dash.on{color:#c97080;border-bottom-color:#c97080;}
+@media(max-width:900px){.dash-kpi{grid-template-columns:repeat(2,1fr);}.dash-row,.dash-row2{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -193,9 +213,11 @@ tr:hover td{background:#faf8f5;}
 </header>
 
 <div class="tabs">
+  <button class="tab" id="tab-dash" onclick="goTab('dash')" style="display:none">💗 <span data-i="t_dash"></span></button>
   <button class="tab on" id="tab-inv" onclick="goTab('inv')">📋 <span data-i="t_inv"></span></button>
   <button class="tab" id="tab-io"  onclick="goTab('io')">🔄 <span data-i="t_io"></span></button>
   <button class="tab" id="tab-log" onclick="goTab('log')">📜 <span data-i="t_log"></span></button>
+  <button class="tab" id="tab-stat" onclick="goTab('stat')" style="display:none">📊 <span data-i="t_stat"></span></button>
   <button class="tab" id="tab-hlp" onclick="goTab('hlp')">❓ <span data-i="t_hlp"></span></button>
   <button class="tab" id="tab-calc" onclick="goTab('calc')" style="display:none">🧮 <span data-i="t_calc"></span></button>
 </div>
@@ -293,7 +315,7 @@ tr:hover td{background:#faf8f5;}
     <div class="io-card">
       <div style="font-size:13px;font-weight:600;margin-bottom:14px;" data-i="io_info"></div>
       <div style="display:flex;flex-direction:column;gap:10px;">
-        <div class="f"><label data-i="f_date"></label><input type="date" id="io-date"></div>
+        <div class="f"><label data-i="f_date"></label><input type="datetime-local" id="io-date"></div>
         <div class="f"><label id="io-partner-lbl"></label><input type="text" id="io-partner" data-pi="io_partner_ph"></div>
         <div class="f"><label data-i="f_note"></label><textarea id="io-note" rows="3" data-pi="io_note_ph"></textarea></div>
       </div>
@@ -341,10 +363,117 @@ tr:hover td{background:#faf8f5;}
       <th>#</th><th data-i="l_date"></th><th data-i="l_type"></th><th data-i="c_name"></th>
       <th>SKU</th><th data-i="c_cat"></th><th data-i="l_chg"></th>
       <th data-i="l_bef"></th><th data-i="l_aft"></th><th data-i="l_partner"></th><th data-i="f_note"></th>
+      <th id="log-th-act" style="display:none"></th>
     </tr></thead><tbody id="log-body"></tbody></table>
     <div class="empty" id="log-empty" style="display:none"><div class="empty-ico">📜</div><div data-i="no_log"></div></div>
     <div class="pag" id="log-pag" style="display:none">
       <span id="pag-info"></span><div class="pag-btns" id="pag-btns"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ 통계 ══ -->
+<div class="page" id="page-stat">
+<div class="wrap">
+  <div class="stat-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+    <div class="io-card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:16px;" data-i="stat_monthly_t"></div>
+      <div style="position:relative;height:280px;">
+        <canvas id="chart-monthly"></canvas>
+      </div>
+    </div>
+    <div class="io-card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:16px;" data-i="stat_top_t"></div>
+      <div style="position:relative;height:280px;">
+        <canvas id="chart-top"></canvas>
+        <div id="chart-top-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--txt2);font-size:13px;" data-i="stat_no_data"></div>
+      </div>
+      <div id="stat-top-table" style="margin-top:16px;"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ 대시보드 (관리자 전용) ══ -->
+<div class="page" id="page-dash">
+<div class="wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+    <div>
+      <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#c97080;">Inventory Dashboard</div>
+      <div style="font-size:11px;color:#9e4055;margin-top:2px;opacity:.7;" id="dash-updated"></div>
+    </div>
+    <button class="btn btn-sm" onclick="renderDashboard()" style="background:#fdf0f2;color:#c97080;border:1px solid #e0a8b2;"><span data-i="dash_refresh"></span></button>
+  </div>
+
+  <div class="dash-kpi">
+    <div class="dash-kpi-card">
+      <div class="dash-kpi-lbl" data-i="dash_total_lbl"></div>
+      <div class="dash-kpi-val" id="dash-total">—</div>
+      <div class="dash-kpi-sub" data-i="dash_total_sub"></div>
+    </div>
+    <div class="dash-kpi-card">
+      <div class="dash-kpi-lbl" data-i="dash_qty_lbl"></div>
+      <div class="dash-kpi-val" id="dash-qty">—</div>
+      <div class="dash-kpi-sub" data-i="dash_qty_sub"></div>
+    </div>
+    <div class="dash-kpi-card">
+      <div class="dash-kpi-lbl" data-i="dash_short_lbl"></div>
+      <div class="dash-kpi-val warn" id="dash-short">—</div>
+      <div class="dash-kpi-sub" id="dash-short-pct"></div>
+    </div>
+    <div class="dash-kpi-card">
+      <div class="dash-kpi-lbl" data-i="dash_slow_lbl"></div>
+      <div class="dash-kpi-val" id="dash-slow-pct">—</div>
+      <div class="dash-kpi-sub" data-i="dash_slow_sub"></div>
+    </div>
+  </div>
+
+  <div class="dash-row">
+    <div class="dash-card">
+      <div class="dash-card-title">📦 <span data-i="dash_daily_t"></span> <span style="font-size:10px;font-weight:400;opacity:.6;">(<span data-i="dash_daily_period"></span>)</span></div>
+      <div style="position:relative;height:240px;"><canvas id="chart-daily-out"></canvas></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-title">🍩 <span data-i="dash_status_t"></span></div>
+      <div style="position:relative;height:200px;"><canvas id="chart-inv-status"></canvas></div>
+      <div id="dash-donut-legend" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
+    </div>
+  </div>
+
+  <div class="dash-row2">
+    <div class="dash-card">
+      <div class="dash-card-title">🐌 <span data-i="dash_slow_t"></span> <span style="font-size:10px;font-weight:400;opacity:.6;">(<span data-i="dash_slow_period"></span>)</span></div>
+      <div class="dash-stat-row">
+        <span style="font-size:12px;color:#9e4055;" data-i="dash_ss_total"></span>
+        <span style="font-family:'Space Mono',monospace;font-size:13px;font-weight:700;" id="ss-total">—</span>
+      </div>
+      <div class="dash-stat-row">
+        <span style="font-size:12px;color:#9e4055;" data-i="dash_ss_active"></span>
+        <span style="font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:#27ae60;" id="ss-active">—</span>
+      </div>
+      <div class="dash-stat-row">
+        <span style="font-size:12px;color:#9e4055;" data-i="dash_ss_slow"></span>
+        <span style="font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:#c97080;" id="ss-slow">—</span>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+          <span style="font-size:11px;color:#9e4055;" data-i="dash_ss_ratio"></span>
+          <span style="font-size:11px;font-weight:700;color:#c97080;" id="ss-pct-lbl">—</span>
+        </div>
+        <div class="slow-bar-wrap"><div class="slow-bar" id="ss-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="dash-card" style="text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div class="dash-card-title" style="width:100%;justify-content:center;">⚠️ <span data-i="dash_risk_t"></span></div>
+      <div style="font-size:12px;color:#9e4055;margin-bottom:8px;" data-i="dash_risk_based"></div>
+      <div class="risk-badge" id="dash-risk-badge">—</div>
+      <div style="font-size:12px;color:#9e4055;margin-top:8px;" id="dash-risk-desc">—</div>
+      <div style="margin-top:16px;width:100%;background:#fdf0f2;border-radius:8px;padding:10px 14px;text-align:left;">
+        <div style="font-size:10px;color:#9e4055;font-weight:600;margin-bottom:6px;" data-i="dash_risk_crit"></div>
+        <div style="font-size:11px;color:#888;line-height:1.8;" id="dash-risk-crit-body"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -597,6 +726,7 @@ tr:hover td{background:#faf8f5;}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script>
 // ── i18n ─────────────────────────────────────────────────────────────────
 var L = {
@@ -630,6 +760,8 @@ ko:{
   out_over:'출고 수량이 재고보다 많습니다!', sku_miss:'등록되지 않은 SKU: ',
   del_confirm:'정말 삭제하시겠습니까?', toast_saved:'저장 완료', toast_del:'삭제 완료', toast_io:'입출고 처리 완료',
   adm_title:'관리자 로그인', adm_sub:'관리자 비밀번호를 입력하세요', adm_btn:'확인', adm_wrong:'비밀번호가 틀렸습니다', adm_logout:'관리자 로그아웃', adm_login:'관리자 모드',
+  t_stat:'통계', stat_monthly_t:'월별 출고량 (최근 6개월)', stat_top_t:'판매 Top 10 상품',
+  stat_no_data:'출고 데이터가 없습니다',
   pag_info:'총 {tot}건 | {from}~{to}',
   h_qr_t:'QR / 바코드 스캐너 사용법', h_pc_t:'PC / 노트북',
   h_pc_1:'USB 스캐너 연결 → 스캔창에 자동 입력',
@@ -676,6 +808,26 @@ ko:{
   calc_r_net:'실수령액',
   calc_r_profit:'마진액',
   calc_final_sub:'실마진율 {r}% · 원가 대비 +{p}đ',
+  t_dash:'대시보드',
+  dash_refresh:'↻ 새로고침', dash_updated:'업데이트: ',
+  dash_total_lbl:'전체 상품수', dash_total_sub:'등록된 상품',
+  dash_qty_lbl:'총 재고 수량', dash_qty_sub:'전체 합계',
+  dash_short_lbl:'재고 부족 상품',
+  dash_slow_lbl:'Slow Stock', dash_slow_sub:'30일 미출고',
+  dash_daily_t:'일별 출고 수량', dash_daily_period:'최근 30일',
+  dash_status_t:'재고 현황',
+  dash_slow_t:'Slow Stock 분석', dash_slow_period:'30일 미출고 기준',
+  dash_ss_total:'전체 상품', dash_ss_active:'30일 내 출고 있음',
+  dash_ss_slow:'30일 미출고 (Slow Stock)', dash_ss_ratio:'Slow Stock 비율',
+  dash_risk_t:'Inventory Risk', dash_risk_based:'재고 부족 상품 비율 기준',
+  dash_risk_crit:'기준',
+  dash_risk_crit_low:'부족 상품 10% 미만',
+  dash_risk_crit_med:'부족 상품 10~25%',
+  dash_risk_crit_high:'부족 상품 25% 초과',
+  dash_risk_low:'재고 상태 양호', dash_risk_med:'일부 보충 필요', dash_risk_high:'즉시 발주 검토',
+  dash_shortage_of:'전체의 ',
+  dash_donut_good:'충분', dash_donut_warn:'주의', dash_donut_low:'부족', dash_donut_out:'품절',
+  dash_today:'오늘', dash_out_qty:'출고 수량', dash_unit:'개',
 },
 vi:{
   hdr_sub:'Hệ thống quản lý kho', t_inv:'Tồn kho', t_io:'Nhập/Xuất', t_log:'Lịch sử', t_hlp:'Hướng dẫn',
@@ -707,6 +859,8 @@ vi:{
   out_over:'Số lượng xuất vượt tồn kho!', sku_miss:'SKU chưa đăng ký: ',
   del_confirm:'Bạn có chắc muốn xóa?', toast_saved:'Đã lưu', toast_del:'Đã xóa', toast_io:'Hoàn tất',
   adm_title:'Đăng nhập quản trị', adm_sub:'Nhập mật khẩu quản trị viên', adm_btn:'Xác nhận', adm_wrong:'Mật khẩu không đúng', adm_logout:'Đăng xuất', adm_login:'Quản trị viên',
+  t_stat:'Thống kê', stat_monthly_t:'Xuất kho theo tháng (6 tháng gần)', stat_top_t:'Top 10 sản phẩm bán chạy',
+  stat_no_data:'Chưa có dữ liệu xuất kho',
   pag_info:'{from}~{to} / {tot}',
   h_qr_t:'Hướng dẫn quét QR / Mã vạch', h_pc_t:'PC / Laptop',
   h_pc_1:'Kết nối máy quét USB → tự động nhập vào ô quét',
@@ -753,6 +907,26 @@ vi:{
   calc_r_net:'Tiền thực nhận',
   calc_r_profit:'Lợi nhuận',
   calc_final_sub:'Biên LN thực {r}% · Hơn vốn +{p}đ',
+  t_dash:'Dashboard',
+  dash_refresh:'↻ Làm mới', dash_updated:'Cập nhật: ',
+  dash_total_lbl:'Tổng sản phẩm', dash_total_sub:'Đã đăng ký',
+  dash_qty_lbl:'Tổng tồn kho', dash_qty_sub:'Tổng cộng',
+  dash_short_lbl:'SP thiếu hàng',
+  dash_slow_lbl:'Slow Stock', dash_slow_sub:'Không xuất 30 ngày',
+  dash_daily_t:'Số lượng xuất theo ngày', dash_daily_period:'30 ngày gần đây',
+  dash_status_t:'Tình trạng tồn kho',
+  dash_slow_t:'Phân tích Slow Stock', dash_slow_period:'Không xuất 30 ngày',
+  dash_ss_total:'Tổng SP', dash_ss_active:'Có xuất trong 30 ngày',
+  dash_ss_slow:'Không xuất 30 ngày (Slow)', dash_ss_ratio:'Tỷ lệ Slow Stock',
+  dash_risk_t:'Inventory Risk', dash_risk_based:'Dựa trên tỷ lệ SP thiếu',
+  dash_risk_crit:'Tiêu chí',
+  dash_risk_crit_low:'SP thiếu < 10%',
+  dash_risk_crit_med:'SP thiếu 10~25%',
+  dash_risk_crit_high:'SP thiếu > 25%',
+  dash_risk_low:'Tồn kho tốt', dash_risk_med:'Cần bổ sung', dash_risk_high:'Đặt hàng ngay',
+  dash_shortage_of:'',
+  dash_donut_good:'Đủ hàng', dash_donut_warn:'Sắp hết', dash_donut_low:'Thiếu', dash_donut_out:'Hết hàng',
+  dash_today:'Hôm nay', dash_out_qty:'Xuất kho', dash_unit:'sp',
 }};
 var lang = 'ko';
 function tx(k,p){var s=L[lang][k]||k;if(p)Object.keys(p).forEach(function(a){s=s.replace('{'+a+'}',p[a]);});return s;}
@@ -761,6 +935,8 @@ function setLang(l){
   document.getElementById('btn-ko').classList.toggle('on',l==='ko');
   document.getElementById('btn-vi').classList.toggle('on',l==='vi');
   applyLang(); renderInv(); renderIORecent(); renderLog(); rebuildCats(); updateIOUI(); renderCart(); calcUpdate();
+  if(document.getElementById('page-stat').classList.contains('on')) renderCharts();
+  if(document.getElementById('page-dash').classList.contains('on')) renderDashboard();
 }
 function applyLang(){
   document.getElementById('hdr-sub').textContent=tx('hdr_sub');
@@ -783,12 +959,12 @@ var backupTimer = null;
 
 function fromProduct(r){return {id:r.id,nameKo:r.name_ko||'',nameVi:r.name_vi||'',name:r.name||joinName(r.name_ko||'',r.name_vi||''),sku:r.sku||'',cat:r.category||'',qty:r.qty||0,min:r.min_qty||5,price:r.price||0,note:r.note||'',daiso:!!r.daiso};}
 function toProduct(d){return {name_ko:d.nameKo||'',name_vi:d.nameVi||'',name:d.name||joinName(d.nameKo||'',d.nameVi||''),sku:d.sku||'',category:d.cat||'',qty:d.qty||0,min_qty:d.min||5,price:d.price||0,note:d.note||'',daiso:!!d.daiso};}
-function fromLog(r){return {id:r.id,type:r.type,iid:r.product_id,name:r.name||'',sku:r.sku||'',cat:r.category||'',qty:r.qty||0,bef:r.before_qty||0,aft:r.after_qty||0,partner:r.partner||'',note:r.note||'',date:r.log_date||String(r.created_at||'').slice(0,10)};}
+function fromLog(r){return {id:r.id,type:r.type,iid:r.product_id,name:r.name||'',sku:r.sku||'',cat:r.category||'',qty:r.qty||0,bef:r.before_qty||0,aft:r.after_qty||0,partner:r.partner||'',note:r.note||'',date:String(r.created_at||r.log_date||'').slice(0,16).replace('T',' ')};}
 function toLog(l){return {product_id:l.iid||null,type:l.type,name:l.name||'',sku:l.sku||'',category:l.cat||'',qty:l.qty||0,before_qty:l.bef||0,after_qty:l.aft||0,partner:l.partner||'',note:(l.note||'') + (currentUser?(' / 입력자: '+currentUser.name):''),log_date:l.date||today()};}
 
 async function load(){
   try{
-    var pr = await sb.from('products').select('*').order('id',{ascending:true});
+    var pr = await sb.from('products').select('*').order('id',{ascending:true}).limit(10000);
     if(pr.error) throw pr.error;
     var lr = await sb.from('stock_logs').select('*').order('created_at',{ascending:false}).limit(1000);
     if(lr.error) throw lr.error;
@@ -841,6 +1017,8 @@ function goTab(name){
     setTimeout(function(){document.getElementById('sc-inp').focus();},80);
   }
   if(name==='log') renderLog();
+  if(name==='stat') renderCharts();
+  if(name==='dash') renderDashboard();
 }
 
 // ── ITEM CRUD ─────────────────────────────────────────────────────────────
@@ -1135,11 +1313,11 @@ function renderInv(){
   if(!f.length){tb.innerHTML='';em.style.display='block';return;}
   em.style.display='none';
   var restoreIds = selectedIds.slice();
-  tb.innerHTML=f.map(function(it){
+  tb.innerHTML=f.map(function(it,idx){
     var st=getSt(it);
     return '<tr id="row-'+it.id+'" onclick="onRowClick(event,'+it.id+')" style="cursor:'+(isAdmin?'pointer':'default')+'">'
       +(isAdmin?'<td style="width:36px;"><input type="checkbox" class="row-chk" data-id="'+it.id+'" style="cursor:pointer;accent-color:var(--red);" onclick="onChkClick(event,'+it.id+')"></td>':'')
-      +'<td style="font-family:\'Space Mono\',monospace;font-size:11px;color:var(--txt2)">#'+it.id+'</td>'
+      +'<td style="font-family:\'Space Mono\',monospace;font-size:11px;color:var(--txt2)">'+(idx+1)+'</td>'
       +'<td><div style="font-weight:600">'+(it.nameKo||it.name||'')+'</div>'+(it.nameVi?'<div style="font-size:11px;color:var(--grn);margin-top:1px">'+it.nameVi+'</div>':'')+(it.note?'<div style="font-size:11px;color:var(--txt2);margin-top:1px">'+it.note+'</div>':'')+'</td>'
       +'<td>'+(it.sku?(it.daiso?'<span onclick="openDaiso(\''+it.sku+'\')" title="다이소몰 검색" style="font-family:\'Space Mono\',monospace;font-size:12px;color:var(--red);cursor:pointer;display:flex;align-items:center;gap:4px;">'+it.sku+' <span style="font-size:9px;background:var(--red);color:#fff;padding:1px 4px;border-radius:3px;font-family:sans-serif;border-radius:3px">🔍</span></span>':'<span style="font-family:\'Space Mono\',monospace;font-size:12px;color:var(--red)">'+it.sku+'</span>'):'-')+'</td>'
       +'<td style="font-size:12px;color:var(--txt2)">'+it.cat+'</td>'
@@ -1204,12 +1382,24 @@ function logRow(l){
     +'<td style="font-family:\'Space Mono\',monospace;font-size:12px">'+l.bef+'</td>'
     +'<td style="font-family:\'Space Mono\',monospace;font-size:12px">'+l.aft+'</td>'
     +'<td style="font-size:12px;color:var(--txt2)">'+(l.partner||'-')+'</td>'
-    +'<td style="font-size:12px;color:var(--txt2)">'+(l.note||'-')+'</td>';
+    +'<td style="font-size:12px;color:var(--txt2)">'+(l.note||'-')+'</td>'
+    +(isAdmin?'<td><button class="ib d" onclick="delLog('+l.id+')">🗑️</button></td>':'<td style="display:none"></td>');
+}
+
+async function delLog(id){
+  if(!isAdmin){return;}
+  if(!confirm('이 이력을 삭제하시겠습니까?'))return;
+  try{
+    var r=await sb.from('stock_logs').delete().eq('id',id);
+    if(r.error) throw r.error;
+    logs=logs.filter(function(l){return l.id!=id;});
+    renderLog();showToast('이력 삭제 완료','ok');
+  }catch(e){showToast('삭제 실패: '+(e.message||e),'err');}
 }
 
 function updateStats(){
   var tot=items.length,low=0,out=0;
-  items.forEach(function(it){if(it.qty==0)out++;else if(it.qty<=it.min)low++;});
+  items.forEach(function(it){if(it.qty==0)out++;else if(it.qty<it.min)low++;});
   document.getElementById('sv-tot').textContent=tot;
   document.getElementById('sv-ok').textContent=tot-low-out;
   document.getElementById('sv-low').textContent=low+out;
@@ -1391,6 +1581,240 @@ function exportLog(){
   XLSX.writeFile(wb,'이력'+(ff?'_'+ff:'')+(ft&&ft!==ff?'~'+ft:'')+'.xlsx');
 }
 
+// ── 대시보드 ──────────────────────────────────────────────────────────────
+var chartDailyOut = null, chartInvStatus = null;
+
+function renderDashboard(){
+  var now = new Date();
+  var thirtyAgo = new Date(now.getTime() - 30*24*60*60*1000);
+
+  // KPI
+  var total = items.length;
+  var totalQty = items.reduce(function(s,i){return s+i.qty;},0);
+  var shortItems = items.filter(function(i){return i.qty < i.min;});
+  var shortCount = shortItems.length;
+  var shortagePct = total ? Math.round(shortCount/total*100) : 0;
+
+  // Slow Stock
+  var recentOutIds = new Set(
+    logs.filter(function(l){
+      return l.type==='out' && new Date(l.date.replace(' ','T')) >= thirtyAgo;
+    }).map(function(l){return l.iid;})
+  );
+  var slowCount = items.filter(function(i){return !recentOutIds.has(i.id);}).length;
+  var slowPct = total ? Math.round(slowCount/total*100) : 0;
+  var activeCount = total - slowCount;
+
+  // Update KPI cards
+  document.getElementById('dash-total').textContent = total.toLocaleString();
+  document.getElementById('dash-qty').textContent = totalQty.toLocaleString();
+  document.getElementById('dash-short').textContent = shortCount.toLocaleString();
+  document.getElementById('dash-short-pct').textContent = tx('dash_shortage_of') + shortagePct + '%';
+  document.getElementById('dash-slow-pct').textContent = slowPct + '%';
+  document.getElementById('dash-updated').textContent = tx('dash_updated') + now.toLocaleTimeString('ko-KR');
+  document.getElementById('ss-total').textContent = total.toLocaleString();
+  document.getElementById('ss-active').textContent = activeCount.toLocaleString();
+  document.getElementById('ss-slow').textContent = slowCount.toLocaleString();
+  document.getElementById('ss-pct-lbl').textContent = slowPct + '%';
+  document.getElementById('ss-bar').style.width = slowPct + '%';
+
+  var riskEl = document.getElementById('dash-risk-badge');
+  var descEl = document.getElementById('dash-risk-desc');
+  var critEl = document.getElementById('dash-risk-crit-body');
+  if(shortagePct < 10){
+    riskEl.textContent='Low'; riskEl.style.background='#27ae60';
+    descEl.textContent = tx('dash_shortage_of') + shortagePct + '% — ' + tx('dash_risk_low');
+  } else if(shortagePct < 25){
+    riskEl.textContent='Medium'; riskEl.style.background='#e67e22';
+    descEl.textContent = tx('dash_shortage_of') + shortagePct + '% — ' + tx('dash_risk_med');
+  } else {
+    riskEl.textContent='High'; riskEl.style.background='#c97080';
+    descEl.textContent = tx('dash_shortage_of') + shortagePct + '% — ' + tx('dash_risk_high');
+  }
+  if(critEl) critEl.innerHTML='🟢 <b>Low</b> — '+tx('dash_risk_crit_low')+'<br>🟡 <b>Medium</b> — '+tx('dash_risk_crit_med')+'<br>🔴 <b>High</b> — '+tx('dash_risk_crit_high');
+
+  var labels=[], outData=[];
+  for(var i=29;i>=0;i--){
+    var d=new Date(now.getTime()-i*24*60*60*1000);
+    var ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    labels.push(i===0?tx('dash_today'):(d.getMonth()+1)+'/'+d.getDate());
+    outData.push(logs.filter(function(l){return l.type==='out'&&(l.date||'').slice(0,10)===ds;})
+      .reduce(function(s,l){return s+(l.qty||0);},0));
+  }
+  if(chartDailyOut){chartDailyOut.destroy();chartDailyOut=null;}
+  var ctx1=document.getElementById('chart-daily-out');
+  if(ctx1){
+    chartDailyOut=new Chart(ctx1,{
+      type:'bar',
+      data:{labels:labels,datasets:[{label:tx('dash_out_qty'),data:outData,
+        backgroundColor:outData.map(function(v){return v>0?'rgba(201,112,128,0.75)':'rgba(201,112,128,0.15)';}),
+        borderRadius:4,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return ' '+c.raw.toLocaleString()+tx('dash_unit');}}}},
+        scales:{
+          y:{beginAtZero:true,ticks:{precision:0,font:{family:'Space Mono',size:10}},grid:{color:'rgba(201,112,128,0.08)'}},
+          x:{ticks:{font:{family:'Noto Sans KR',size:9},maxRotation:45},grid:{display:false}}
+        }
+      }
+    });
+  }
+
+  var donutLabels=[tx('dash_donut_good'),tx('dash_donut_warn'),tx('dash_donut_low'),tx('dash_donut_out')];
+  var donutColors=['#27ae60','#f39c12','#c97080','#9b59b6'];
+  var good=items.filter(function(i){return i.qty>=i.min*2;}).length;
+  var warn=items.filter(function(i){return i.qty>=i.min&&i.qty<i.min*2;}).length;
+  var low2=items.filter(function(i){return i.qty>0&&i.qty<i.min;}).length;
+  var out2=items.filter(function(i){return i.qty===0;}).length;
+  var donutData=[good,warn,low2,out2];
+
+  if(chartInvStatus){chartInvStatus.destroy();chartInvStatus=null;}
+  var ctx2=document.getElementById('chart-inv-status');
+  if(ctx2){
+    chartInvStatus=new Chart(ctx2,{
+      type:'doughnut',
+      data:{labels:donutLabels,datasets:[{data:donutData,backgroundColor:donutColors,borderWidth:2,borderColor:'#fff',hoverOffset:6}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return ' '+c.label+': '+c.raw.toLocaleString()+tx('dash_unit')+(total?(' ('+Math.round(c.raw/total*100)+'%)'):'');}}}}
+      }
+    });
+  }
+  var leg=document.getElementById('dash-donut-legend');
+  if(leg) leg.innerHTML=donutLabels.map(function(lb,i){
+    return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;">'
+      +'<span style="width:10px;height:10px;border-radius:50%;background:'+donutColors[i]+';flex-shrink:0;"></span>'
+      +'<span style="color:#888;">'+lb+'</span>'
+      +'<span style="font-family:\'Space Mono\',monospace;font-weight:700;margin-left:auto;">'+donutData[i].toLocaleString()+'</span></div>';
+  }).join('');
+}
+
+// ── 통계 차트 ──────────────────────────────────────────────────────────────
+var chartMonthly = null, chartTop = null;
+var STAT_START = '2026-05-15';
+
+function renderCharts(){
+  renderMonthlyChart();
+  renderTopChart();
+}
+
+function renderMonthlyChart(){
+  var ctx = document.getElementById('chart-monthly');
+  if(!ctx) return;
+  // 최근 6개월 레이블 생성
+  var months = [];
+  var now = new Date();
+  for(var i=5;i>=0;i--){
+    var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
+  }
+  var outData = months.map(function(m){
+    return logs.filter(function(l){return l.type==='out'&&(l.date||'').slice(0,7)===m&&(l.date||'')>=STAT_START;})
+      .reduce(function(s,l){return s+(l.qty||0);},0);
+  });
+  var inData = months.map(function(m){
+    return logs.filter(function(l){return l.type==='in'&&(l.date||'').slice(0,7)===m&&(l.date||'')>=STAT_START;})
+      .reduce(function(s,l){return s+(l.qty||0);},0);
+  });
+  if(chartMonthly){chartMonthly.destroy();chartMonthly=null;}
+  chartMonthly = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:months.map(function(m){return m.slice(5)+'월';}),
+      datasets:[
+        {label:lang==='ko'?'출고':'Xuất', data:outData, backgroundColor:'rgba(192,57,43,0.8)', borderRadius:5},
+        {label:lang==='ko'?'입고':'Nhập', data:inData, backgroundColor:'rgba(39,174,96,0.65)', borderRadius:5}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top', labels:{font:{family:'Noto Sans KR',size:12}}}},
+      scales:{
+        y:{beginAtZero:true, ticks:{precision:0, font:{family:'Space Mono', size:11}}},
+        x:{ticks:{font:{family:'Noto Sans KR', size:12}}}
+      }
+    }
+  });
+}
+
+function renderTopChart(){
+  var ctx = document.getElementById('chart-top');
+  var empty = document.getElementById('chart-top-empty');
+  var tb = document.getElementById('stat-top-table');
+  if(!ctx) return;
+
+  // iid 기준 그룹핑 (이름 대신 product_id로 묶어야 정확)
+  var map = {};
+  logs.filter(function(l){return l.type==='out'&&(l.date||'')>=STAT_START;}).forEach(function(l){
+    var key = l.iid || l.sku || l.name || '?';
+    if(!map[key]){
+      var it = l.iid ? items.find(function(i){return i.id==l.iid;}) : null;
+      map[key] = {iid:l.iid, name:(it?it.nameKo:null)||(l.name||'').split(' / ')[0]||l.sku||'?', qty:0};
+    }
+    map[key].qty += (l.qty||0);
+  });
+  var arr = Object.keys(map).map(function(k){return map[k];});
+  arr.sort(function(a,b){return b.qty-a.qty;});
+  var top = arr.slice(0,20);
+  var topTable = arr.slice(0,50);
+
+  if(chartTop){chartTop.destroy();chartTop=null;}
+  if(!top.length){
+    empty.style.display='block';
+    if(tb) tb.innerHTML='';
+    return;
+  }
+  empty.style.display='none';
+
+  var limit = window.innerWidth<600?8:14;
+  chartTop = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:top.map(function(x){var n=x.name;return n.length>limit?n.slice(0,limit)+'…':n;}),
+      datasets:[{
+        label:lang==='ko'?'총 출고수량':'Tổng xuất',
+        data:top.map(function(x){return x.qty;}),
+        backgroundColor:top.map(function(_,i){return 'rgba(192,57,43,'+(0.9-i*0.07).toFixed(2)+')';}),
+        borderRadius:4
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{beginAtZero:true, ticks:{precision:0, font:{family:'Space Mono',size:11}}},
+        y:{ticks:{font:{family:'Noto Sans KR',size:11}}}
+      }
+    }
+  });
+
+  // 최소재고 빠른 수정 테이블
+  if(tb){
+    var hl = lang==='ko';
+    tb.innerHTML='<div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">'+(hl?'최소재고 빠른 수정':'Chỉnh tồn tối thiểu nhanh')+'</div>'
+      +'<div class="tbl-wrap"><table style="width:100%;"><thead><tr>'
+      +'<th style="width:28px;">#</th>'
+      +'<th>'+(hl?'상품명':'Sản phẩm')+'</th>'
+      +'<th style="text-align:right;">'+(hl?'총출고':'Tổng XK')+'</th>'
+      +'<th style="text-align:right;">'+(hl?'현재고':'Tồn KHO')+'</th>'
+      +'<th style="text-align:center;">'+(hl?'최소재고':'Tối thiểu')+'</th>'
+      +'</tr></thead><tbody>'
+      +topTable.map(function(x,i){
+        var it = x.iid ? items.find(function(item){return item.id==x.iid;}) : null;
+        var inp = it
+          ?'<input type="number" min="0" value="'+it.min+'" style="width:54px;background:var(--sur2);border:1px solid var(--bdr);border-radius:5px;padding:3px 5px;font-family:\'Space Mono\',monospace;font-size:12px;color:var(--ora);text-align:center;outline:none;" onblur="setMinDirect('+it.id+',this.value)" onkeydown="if(event.keyCode===13)this.blur()">'
+          :'-';
+        return '<tr>'
+          +'<td style="color:var(--txt2);font-size:11px;">'+(i+1)+'</td>'
+          +'<td style="font-weight:500;">'+x.name+'</td>'
+          +'<td style="text-align:right;font-family:\'Space Mono\',monospace;font-size:12px;color:var(--red);">'+x.qty+'</td>'
+          +'<td style="text-align:right;font-family:\'Space Mono\',monospace;font-size:12px;">'+(it?it.qty:'-')+'</td>'
+          +'<td style="text-align:center;">'+inp+'</td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table></div>';
+  }
+}
+
 // ── QR ─────────────────────────────────────────────────────────────────────
 var qrReader=null,qrCallback=null;
 function openQR(){
@@ -1447,6 +1871,7 @@ function showToast(msg,type){
   clearTimeout(toastT);toastT=setTimeout(function(){el.classList.remove('on');},2800);
 }
 function today(){return new Date().toISOString().slice(0,10);}
+function nowLocal(){var d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16);}
 
 // ── INIT ─────────────────────────────────────────────────────────────────
 // ── 대량 선택/수정 ──────────────────────────────────────────────────────────
@@ -1571,6 +1996,7 @@ async function loginApp(){
     document.getElementById('login-ov').classList.remove('on');
     isAdmin=currentUser.role==='admin';
     updateUserUI();updateAdminUI();renderInv();
+    if(isAdmin) goTab('dash');
     showToast(currentUser.name+' 로그인 완료','ok');
   }catch(e){
     errEl.textContent='ID 또는 비밀번호가 틀렸습니다';
@@ -1602,6 +2028,7 @@ async function restoreLogin(){
       currentUser={id:email.replace(AUTH_DOMAIN,''),name:meta.name||email,role:meta.role||'staff'};
       document.getElementById('login-ov').classList.remove('on');
       isAdmin=currentUser.role==='admin';
+      if(isAdmin) goTab('dash');
     }else{
       document.getElementById('login-ov').classList.add('on');
     }
@@ -1668,20 +2095,31 @@ function updateAdminUI(){
   var btn=document.getElementById('admin-toggle-btn');
   var thChk=document.getElementById('th-chk');
   var calcTab=document.getElementById('tab-calc');
+  var statTab=document.getElementById('tab-stat');
+  var dashTab=document.getElementById('tab-dash');
+  var logThAct=document.getElementById('log-th-act');
   if(isAdmin){
     lbl.textContent=tx('adm_logout');
     btn.style.background='var(--red)';btn.style.color='#fff';btn.style.border='none';
     tb.style.display='flex';
     thChk.style.display='table-cell';
     calcTab.style.display='';
+    statTab.style.display='';
+    dashTab.style.display='';
+    if(logThAct) logThAct.style.display='';
   } else {
     lbl.textContent=tx('adm_login');
     btn.style.background='';btn.style.color='';btn.style.border='';
     tb.style.display='none';
     thChk.style.display='none';
     calcTab.style.display='none';
+    statTab.style.display='none';
+    dashTab.style.display='none';
+    if(logThAct) logThAct.style.display='none';
     clearSelection();
     if(document.getElementById('page-calc').classList.contains('on')) goTab('inv');
+    if(document.getElementById('page-stat').classList.contains('on')) goTab('inv');
+    if(document.getElementById('page-dash').classList.contains('on')) goTab('inv');
   }
 }
 
@@ -1717,7 +2155,7 @@ document.getElementById('tr-btn').onclick=doTranslate;
 document.getElementById('item-save').onclick=saveItem;
 
 // 입출고 날짜 기본값
-document.getElementById('io-date').value=today();
+document.getElementById('io-date').value=nowLocal();
 // 이력 날짜 필터 기본값: 이번 달 1일 ~ 오늘
 (function(){
   var t=new Date();

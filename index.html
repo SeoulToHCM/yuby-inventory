@@ -1345,7 +1345,7 @@ function getLogFiltered(){
   var ft=document.getElementById('lf-to').value;
   return logs.filter(function(l){
     var ms=!q||(l.name||'').toLowerCase().indexOf(q)!==-1||(l.sku||'').toLowerCase().indexOf(q)!==-1||(l.partner||'').toLowerCase().indexOf(q)!==-1;
-    var md=(!ff||l.date>=ff)&&(!ft||l.date<=ft);
+    var ld=l.date.slice(0,10);var md=(!ff||ld>=ff)&&(!ft||ld<=ft);
     return ms&&(!tf||l.type===tf)&&(!cf||l.cat===cf)&&md;
   });
 }
@@ -1358,7 +1358,7 @@ function renderLog(){
   var tb=document.getElementById('log-body'),em=document.getElementById('log-empty'),pag=document.getElementById('log-pag');
   if(!pg.length){tb.innerHTML='';em.style.display='block';pag.style.display='none';return;}
   em.style.display='none';
-  tb.innerHTML=pg.map(function(l,i){return '<tr><td style="color:var(--txt2);font-size:11px">'+(fr+i+1)+'</td>'+logRow(l)+'</tr>';}).join('');
+  tb.innerHTML=pg.map(function(l,i){return '<tr><td style="color:var(--txt2);font-size:11px">'+(fr+i+1)+'</td>'+logRow(l)+(isAdmin?'<td><button class="ib d" onclick="delLog('+l.id+')">🗑️</button></td>':'<td></td>')+'</tr>';}).join('');
   if(tot>PER){
     pag.style.display='flex';
     document.getElementById('pag-info').textContent=tx('pag_info',{tot:tot,from:fr+1,to:to});
@@ -1382,19 +1382,21 @@ function logRow(l){
     +'<td style="font-family:\'Space Mono\',monospace;font-size:12px">'+l.bef+'</td>'
     +'<td style="font-family:\'Space Mono\',monospace;font-size:12px">'+l.aft+'</td>'
     +'<td style="font-size:12px;color:var(--txt2)">'+(l.partner||'-')+'</td>'
-    +'<td style="font-size:12px;color:var(--txt2)">'+(l.note||'-')+'</td>'
-    +(isAdmin?'<td><button class="ib d" onclick="delLog('+l.id+')">🗑️</button></td>':'<td style="display:none"></td>');
+    +'<td style="font-size:12px;color:var(--txt2)">'+(l.note||'-')+'</td>';
 }
 
 async function delLog(id){
   if(!isAdmin){return;}
   if(!confirm('이 이력을 삭제하시겠습니까?'))return;
   try{
-    var r=await sb.from('stock_logs').delete().eq('id',id);
+    var r=await sb.from('stock_logs').delete().eq('id',id).select();
     if(r.error) throw r.error;
     logs=logs.filter(function(l){return l.id!=id;});
     renderLog();showToast('이력 삭제 완료','ok');
-  }catch(e){showToast('삭제 실패: '+(e.message||e),'err');}
+  }catch(e){
+    console.error('delLog error:',e);
+    showToast('삭제 실패: '+(e.message||e),'err');
+  }
 }
 
 function updateStats(){

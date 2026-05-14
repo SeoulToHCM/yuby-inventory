@@ -2270,6 +2270,7 @@ async function initApp(){
   updateAdminUI();
   renderIORecent();
   renderLog();
+  if(isAdmin) renderDashboard();
   setupRealtime();
 }
 initApp();

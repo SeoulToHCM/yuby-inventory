@@ -77,6 +77,9 @@ tr:hover td{background:#faf8f5;}
 .ib{width:28px;height:28px;border-radius:6px;border:1px solid var(--bdr);background:transparent;color:var(--txt2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;}
 .ib:hover{border-color:var(--red);color:var(--red);}
 .ib.d:hover{border-color:#e74c3c;color:#e74c3c;}
+tr.disc-row td{opacity:.42;}
+tr.disc-row:hover td{opacity:.65;}
+.bd{background:rgba(120,120,120,.1);color:#888;}
 
 /* modal */
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
@@ -240,6 +243,7 @@ tr:hover td{background:#faf8f5;}
       <option value="ok" data-i="f_ok"></option>
       <option value="low" data-i="f_low"></option>
       <option value="out" data-i="f_out"></option>
+      <option value="disc" data-i="f_disc"></option>
     </select>
     <button class="btn btn-g" onclick="exportInv()">📊 <span data-i="btn_exp"></span></button>
     <div id="admin-toolbar" style="display:none;align-items:center;gap:6px;">
@@ -736,7 +740,7 @@ ko:{
   hdr_sub:'재고관리 시스템', t_inv:'재고현황', t_io:'입출고', t_log:'이력', t_hlp:'도움말',
   s_tot:'전체상품', s_ok:'정상재고', s_low:'재고부족', s_cat:'카테고리',
   ph_search:'상품명, SKU 검색...', f_allcat:'전체 카테고리', f_allst:'전체 재고',
-  f_ok:'정상', f_low:'부족', f_out:'품절',
+  f_ok:'정상', f_low:'부족', f_out:'품절', f_disc:'판매중단', st_disc:'판매중단',
   btn_bulk:'대량등록', btn_exp:'엑셀', btn_add:'상품추가',
   c_name:'상품명', c_cat:'카테고리', c_qty:'수량', c_min:'최소재고', c_price:'가격(VND)', c_st:'상태', c_act:'관리',
   st_ok:'정상', st_low:'부족', st_out:'품절', no_items:'등록된 상품이 없습니다',
@@ -835,7 +839,7 @@ vi:{
   hdr_sub:'Hệ thống quản lý kho', t_inv:'Tồn kho', t_io:'Nhập/Xuất', t_log:'Lịch sử', t_hlp:'Hướng dẫn',
   s_tot:'Tổng SP', s_ok:'Còn hàng', s_low:'Sắp hết', s_cat:'Danh mục',
   ph_search:'Tìm tên, SKU...', f_allcat:'Tất cả danh mục', f_allst:'Tất cả',
-  f_ok:'Còn hàng', f_low:'Sắp hết', f_out:'Hết hàng',
+  f_ok:'Còn hàng', f_low:'Sắp hết', f_out:'Hết hàng', f_disc:'Ngừng bán', st_disc:'Ngừng bán',
   btn_bulk:'Nhập hàng loạt', btn_exp:'Excel', btn_add:'Thêm SP',
   c_name:'Tên sản phẩm', c_cat:'Danh mục', c_qty:'Số lượng', c_min:'Tồn tối thiểu', c_price:'Giá(VND)', c_st:'Trạng thái', c_act:'Thao tác',
   st_ok:'Còn hàng', st_low:'Sắp hết', st_out:'Hết hàng', no_items:'Chưa có sản phẩm',
@@ -959,8 +963,8 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var currentUser = null;
 var backupTimer = null;
 
-function fromProduct(r){return {id:r.id,nameKo:r.name_ko||'',nameVi:r.name_vi||'',name:r.name||joinName(r.name_ko||'',r.name_vi||''),sku:r.sku||'',cat:r.category||'',qty:r.qty||0,min:r.min_qty||5,price:r.price||0,note:r.note||'',daiso:!!r.daiso};}
-function toProduct(d){return {name_ko:d.nameKo||'',name_vi:d.nameVi||'',name:d.name||joinName(d.nameKo||'',d.nameVi||''),sku:d.sku||'',category:d.cat||'',qty:d.qty||0,min_qty:d.min||5,price:d.price||0,note:d.note||'',daiso:!!d.daiso};}
+function fromProduct(r){return {id:r.id,nameKo:r.name_ko||'',nameVi:r.name_vi||'',name:r.name||joinName(r.name_ko||'',r.name_vi||''),sku:r.sku||'',cat:r.category||'',qty:r.qty||0,min:r.min_qty||5,price:r.price||0,note:r.note||'',daiso:!!r.daiso,discontinued:!!r.discontinued};}
+function toProduct(d){return {name_ko:d.nameKo||'',name_vi:d.nameVi||'',name:d.name||joinName(d.nameKo||'',d.nameVi||''),sku:d.sku||'',category:d.cat||'',qty:d.qty||0,min_qty:d.min||5,price:d.price||0,note:d.note||'',daiso:!!d.daiso,discontinued:!!d.discontinued};}
 function fromLog(r){
   var dateStr='';
   if(r.log_date){dateStr=String(r.log_date).slice(0,16).replace('T',' ');}
@@ -1109,6 +1113,19 @@ async function saveItem(){
     }
     save();closeItem();renderInv();updateStats();rebuildCats();showToast(tx('toast_saved'),'ok');
   }catch(e){console.error(e);showToast('저장 실패: '+(e.message||e),'err');}
+}
+
+async function toggleDiscontinued(id){
+  if(!isAdmin){return;}
+  var it=items.find(function(i){return i.id==id;});if(!it)return;
+  var newVal=!it.discontinued;
+  try{
+    var r=await sb.from('products').update({discontinued:newVal}).eq('id',id);
+    if(r.error) throw r.error;
+    it.discontinued=newVal;
+    save();renderInv();updateStats();
+    showToast((it.nameKo||it.name||'')+(newVal?' 판매중단 처리':'판매재개 처리'),'ok');
+  }catch(e){console.error(e);showToast('수정 실패: '+(e.message||e),'err');}
 }
 
 async function delItem(id){
@@ -1313,7 +1330,7 @@ function renderInv(){
     var ms=!q||(it.name||'').toLowerCase().indexOf(q)!==-1||(it.sku||'').toLowerCase().indexOf(q)!==-1;
     var mc=!cf||it.cat===cf;
     var st=getSt(it).k;
-    var mf=!sf||(sf==='ok'&&st==='st_ok')||(sf==='low'&&st==='st_low')||(sf==='out'&&st==='st_out');
+    var mf=!sf||(sf==='disc'&&it.discontinued)||(!it.discontinued&&((sf==='ok'&&st==='st_ok')||(sf==='low'&&st==='st_low')||(sf==='out'&&st==='st_out')));
     return ms&&mc&&mf;
   });
   var tb=document.getElementById('inv-body'),em=document.getElementById('inv-empty');
@@ -1322,7 +1339,7 @@ function renderInv(){
   var restoreIds = selectedIds.slice();
   tb.innerHTML=f.map(function(it,idx){
     var st=getSt(it);
-    return '<tr id="row-'+it.id+'" onclick="onRowClick(event,'+it.id+')" style="cursor:'+(isAdmin?'pointer':'default')+'">'
+    return '<tr id="row-'+it.id+'"'+(it.discontinued?' class="disc-row"':'')+' onclick="onRowClick(event,'+it.id+')" style="cursor:'+(isAdmin?'pointer':'default')+'">'
       +(isAdmin?'<td style="width:36px;"><input type="checkbox" class="row-chk" data-id="'+it.id+'" style="cursor:pointer;accent-color:var(--red);" onclick="onChkClick(event,'+it.id+')"></td>':'')
       +'<td style="font-family:\'Space Mono\',monospace;font-size:11px;color:var(--txt2)">'+(idx+1)+'</td>'
       +'<td><div style="font-weight:600">'+(it.nameKo||it.name||'')+'</div>'+(it.nameVi?'<div style="font-size:11px;color:var(--grn);margin-top:1px">'+it.nameVi+'</div>':'')+(it.note?'<div style="font-size:11px;color:var(--txt2);margin-top:1px">'+it.note+'</div>':'')+'</td>'
@@ -1331,8 +1348,8 @@ function renderInv(){
       +'<td><div class="qc">'+(isAdmin?'<button class="qb" onclick="simpleQty('+it.id+',-1)">−</button>':'')+(isAdmin?'<input type="number" class="qv qty-inp" min="0" value="'+it.qty+'" onblur="setQtyDirect('+it.id+',this.value)" onkeydown="if(event.keyCode===13)this.blur()" onclick="event.stopPropagation()">':'<span class="qv" style="min-width:40px;text-align:center;">'+it.qty+'</span>')+(isAdmin?'<button class="qb" onclick="simpleQty('+it.id+',1)">＋</button>':'')+'</div></td>'
       +(isAdmin?'<td><input type="number" class="qty-inp" min="0" value="'+it.min+'" onblur="setMinDirect('+it.id+',this.value)" onkeydown="if(event.keyCode===13)this.blur()" onclick="event.stopPropagation()" style="width:54px;color:var(--ora);"></td>':'<td style="color:var(--txt2)">'+it.min+'</td>')
       +'<td style="font-family:\'Space Mono\',monospace;font-size:12px">'+((it.price||0).toLocaleString())+'</td>'
-      +'<td><span class="badge '+st.c+'">'+tx(st.k)+'</span></td>'
-      +'<td>'+(isAdmin?'<div class="act"><button class="ib" onclick="openEdit('+it.id+')">✏️</button><button class="ib d" onclick="delItem('+it.id+')">🗑️</button></div>':'-')+'</td>'
+      +'<td>'+(it.discontinued?'<span class="badge bd">🚫 '+tx('st_disc')+'</span>':'<span class="badge '+st.c+'">'+tx(st.k)+'</span>')+'</td>'
+      +'<td>'+(isAdmin?'<div class="act"><button class="ib" onclick="openEdit('+it.id+')" title="편집">✏️</button><button class="ib" onclick="toggleDiscontinued('+it.id+')" title="'+(it.discontinued?'판매재개':'판매중단')+'" style="'+(it.discontinued?'border-color:#888;color:#888;':'')+'">'+(it.discontinued?'🔓':'🚫')+'</button><button class="ib d" onclick="delItem('+it.id+')" title="삭제">🗑️</button></div>':'-')+'</td>'
       +'</tr>';
   }).join('');
 }
@@ -1442,12 +1459,13 @@ async function delLog(id){
 }
 
 function updateStats(){
-  var tot=items.length,low=0,out=0;
-  items.forEach(function(it){if(it.qty==0)out++;else if(it.qty<it.min)low++;});
+  var active=items.filter(function(it){return !it.discontinued;});
+  var tot=active.length,low=0,out=0;
+  active.forEach(function(it){if(it.qty==0)out++;else if(it.qty<it.min)low++;});
   document.getElementById('sv-tot').textContent=tot;
   document.getElementById('sv-ok').textContent=tot-low-out;
   document.getElementById('sv-low').textContent=low+out;
-  var cats={};items.forEach(function(it){cats[it.cat]=1;});
+  var cats={};active.forEach(function(it){cats[it.cat]=1;});
   document.getElementById('sv-cat').textContent=Object.keys(cats).length;
 }
 
